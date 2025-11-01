@@ -1,13 +1,20 @@
+import HomeView from '@/views/HomeView.vue'
+import StatisticsView from '@/views/StatisticsView.vue'
+import AirlineView from '@/views/airline/AirlineView.vue'
+import CreateAirlineView from '@/views/airline/CreateAirlineView.vue'
+import EditAirlineView from '@/views/airline/EditAirlineView.vue'
+import AirplaneView from '@/views/airplane/AirplaneView.vue'
+import CreateAirplaneView from '@/views/airplane/CreateAirplaneView.vue'
+import EditAirplaneView from '@/views/airplane/EditAirplaneView.vue'
+import BookingView from '@/views/booking/BookingView.vue'
+import CreateBookingView from '@/views/booking/CreateBookingView.vue'
+import DetailBookingView from '@/views/booking/DetailBookingView.vue'
+import EditBookingView from '@/views/booking/EditBookingView.vue'
+import CreateFlightView from '@/views/flight/CreateFlightView.vue'
+import DetailFlightView from '@/views/flight/DetailFlightView.vue'
+import EditFlightView from '@/views/flight/EditFlightView.vue'
+import FlightView from '@/views/flight/FlightView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import ProfileView from '@/views/profile/ProfileView.vue'
-import CreateProfileView from '@/views/profile/CreateProfileView.vue'
-import EditProfileView from '@/views/profile/EditProfileView.vue'
-import DetailProfileView from '@/views/profile/DetailProfileView.vue'
-import PostView from '@/views/post/PostView.vue'
-import CreatePostView from '@/views/post/CreatePostView.vue'
-import EditPostView from '@/views/post/EditPostView.vue'
-import DetailPostView from '@/views/post/DetailPostView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,44 +25,79 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/profiles',
-      name: 'profile',
-      component: ProfileView,
+      path: '/airlines',
+      name: 'airlines',
+      component: AirlineView,
     },
     {
-      path: '/profiles/add',
-      name: 'create-profile',
-      component: CreateProfileView,
+      path: '/airlines/add',
+      name: 'create-airline',
+      component: CreateAirlineView,
     },
     {
-      path: '/profiles/:id/edit',
-      name: 'edit-profile',
-      component: EditProfileView,
+      path: '/airlines/:id/edit',
+      name: 'edit-airline',
+      component: EditAirlineView,
     },
     {
-      path: '/profiles/:id',
-      name: 'detail-profile',
-      component: DetailProfileView,
+      path: '/airplanes',
+      name: 'airplanes',
+      component: AirplaneView,
     },
     {
-      path: '/posts',
-      name: 'posts',
-      component: PostView,
+      path: '/airplanes/add',
+      name: 'create-airplane',
+      component: CreateAirplaneView,
     },
     {
-      path: '/posts/add',
-      name: 'create-post',
-      component: CreatePostView,
+      path: '/airplanes/:id/edit',
+      name: 'edit-airplane',
+      component: EditAirplaneView,
     },
     {
-      path: '/posts/:id/edit',
-      name: 'edit-post',
-      component: EditPostView,
+      path: '/flights',
+      name: 'flights',
+      component: FlightView,
     },
     {
-      path: '/posts/:id',
-      name: 'detail-post',
-      component: DetailPostView,
+      path: '/flights/add',
+      name: 'create-flight',
+      component: CreateFlightView,
+    },
+    {
+      path: '/flights/:id',
+      name: 'detail-flight',
+      component: DetailFlightView,
+    },
+    {
+      path: '/flights/:id/edit',
+      name: 'edit-flight',
+      component: EditFlightView,
+    },
+    {
+      path: '/bookings',
+      name: 'bookings',
+      component: BookingView,
+    },
+    {
+      path: '/bookings/add',
+      name: 'create-booking',
+      component: CreateBookingView,
+    },
+    {
+      path: '/bookings/:id',
+      name: 'detail-booking',
+      component: DetailBookingView,
+    },
+    {
+      path: '/bookings/:id/edit',
+      name: 'edit-booking',
+      component: EditBookingView,
+    },
+    {
+      path: '/statistics',
+      name: 'statistics',
+      component: StatisticsView,
     },
   ],
 })
