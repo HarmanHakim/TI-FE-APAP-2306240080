@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAirplaneStore } from '@/stores/airplane/airplane.store'
-import { useAirlineStore } from '@/stores/airline/airline.store'
 import type { CreateAirplaneDto } from '@/interfaces/airplane.interface'
+import { useAirlineStore } from '@/stores/airline/airline.store'
+import { useAirplaneStore } from '@/stores/airplane/airplane.store'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const airplaneStore = useAirplaneStore()
 const airlineStore = useAirlineStore()
 
 const form = ref<CreateAirplaneDto>({
-  id: '',
   airlineId: '',
   model: '',
   seatCapacity: 0,
@@ -36,11 +35,6 @@ const handleSubmit = async () => {
     <h1 class="text-3xl font-bold mb-6">Register New Airplane</h1>
 
     <form @submit.prevent="handleSubmit" class="bg-white p-6 rounded-lg shadow space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-2">Airplane ID</label>
-        <input v-model="form.id" required class="w-full px-4 py-2 border rounded" />
-      </div>
-
       <div>
         <label class="block text-sm font-medium mb-2">Airline</label>
         <select v-model="form.airlineId" required class="w-full px-4 py-2 border rounded">

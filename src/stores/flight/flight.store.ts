@@ -19,6 +19,7 @@ export const useFlightStore = defineStore('flight', {
       try {
         const response = await flightService.getAllFlights(params);
         this.flights = response.data;
+        console.log(response.data)
 
         if (this.flights.length === 0) {
           toast.warning('No flights found');

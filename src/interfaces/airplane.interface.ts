@@ -11,7 +11,6 @@ export interface ReadAirplaneDto {
 }
 
 export interface CreateAirplaneDto {
-  id: string;
   airlineId: string; // 3 characters
   model: string;
   seatCapacity: number; // > 0

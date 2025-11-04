@@ -3,6 +3,7 @@ export interface ClassFlightSummary {
   classType: string;
   seatCapacity: number;
   availableSeats: number;
+  price: number;
 }
 
 export interface ReadFlightDto {
