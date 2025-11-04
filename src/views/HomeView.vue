@@ -12,6 +12,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const response = await homeService.getHomeStatistics()
+
     statistics.value = response.data as HomeStatistics
   } catch (error) {
     console.error('Failed to load statistics:', error)
@@ -52,7 +53,7 @@ onMounted(async () => {
       <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-purple-500">
         <h3 class="text-gray-600 text-sm font-medium">Airlines Registered</h3>
         <p class="text-3xl font-bold text-purple-600 mt-2">
-          {{ statistics?.totalAirlinesRegistered ?? 0 }}
+          {{ statistics?.totalRegisteredAirlines ?? 0 }}
         </p>
       </div>
     </div>

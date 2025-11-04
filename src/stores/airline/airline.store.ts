@@ -1,6 +1,6 @@
-import type { ReadAirlineDto, CreateAirlineDto, UpdateAirlineDto } from '@/interfaces/airline.interface';
-import { defineStore } from 'pinia';
+import type { CreateAirlineDto, ReadAirlineDto, UpdateAirlineDto } from '@/interfaces/airline.interface';
 import { airlineService } from '@/services/airline.service';
+import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
 
 export const useAirlineStore = defineStore('airline', {
@@ -23,8 +23,6 @@ export const useAirlineStore = defineStore('airline', {
 
         if (this.airlines.length === 0) {
           toast.warning('No airlines found');
-        } else {
-          toast.success('Airlines loaded successfully');
         }
 
         return this.airlines;

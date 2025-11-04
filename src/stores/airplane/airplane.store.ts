@@ -1,6 +1,6 @@
-import type { ReadAirplaneDto, CreateAirplaneDto, UpdateAirplaneDto, AirplaneQueryParams } from '@/interfaces/airplane.interface';
-import { defineStore } from 'pinia';
+import type { AirplaneQueryParams, CreateAirplaneDto, ReadAirplaneDto, UpdateAirplaneDto } from '@/interfaces/airplane.interface';
 import { airplaneService } from '@/services/airplane.service';
+import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
 
 export const useAirplaneStore = defineStore('airplane', {
@@ -22,8 +22,6 @@ export const useAirplaneStore = defineStore('airplane', {
 
         if (this.airplanes.length === 0) {
           toast.warning('No airplanes found');
-        } else {
-          toast.success('Airplanes loaded successfully');
         }
 
         return this.airplanes;
