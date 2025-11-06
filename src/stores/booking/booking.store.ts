@@ -1,6 +1,6 @@
-import type { ReadBookingDto, CreateBookingDto, UpdateBookingDto, BookingQueryParams, BookingStatistics } from '@/interfaces/booking.interface';
-import { defineStore } from 'pinia';
+import type { BookingQueryParams, BookingStatistics, CreateBookingDto, ReadBookingDto, UpdateBookingDto } from '@/interfaces/booking.interface';
 import { bookingService } from '@/services/booking.service';
+import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
 
 export const useBookingStore = defineStore('booking', {
@@ -23,8 +23,6 @@ export const useBookingStore = defineStore('booking', {
 
         if (this.bookings.length === 0) {
           toast.warning('No bookings found');
-        } else {
-          toast.success('Bookings loaded successfully');
         }
 
         return this.bookings;

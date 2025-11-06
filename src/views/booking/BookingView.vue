@@ -8,6 +8,8 @@ const bookingStore = useBookingStore()
 
 // Filter states
 const searchQuery = ref('')
+const filterFlightNumber = ref('')
+const filterContactEmail = ref('')
 const filterStatus = ref<number | undefined>(undefined)
 const showInactive = ref(true)
 
@@ -24,9 +26,21 @@ const filteredBookings = computed(() => {
         booking.contactEmail.toLowerCase().includes(searchLower) ||
         booking.contactPhone.toLowerCase().includes(searchLower) ||
         booking.originAirportCode.toLowerCase().includes(searchLower) ||
-        booking.destinationAirportCode.toLowerCase().includes(searchLower)
+        booking.destinationAirportCode.toLowerCase().includes(searchLower) ||
+        booking.classType.toLowerCase().includes(searchLower) ||
+        booking.statusLabel.toLowerCase().includes(searchLower)
 
       if (!matchesSearch) return false
+    }
+
+    // Filter by flight number
+    if (filterFlightNumber.value && !booking.flightNumber.toLowerCase().includes(filterFlightNumber.value.toLowerCase())) {
+      return false
+    }
+
+    // Filter by contact email
+    if (filterContactEmail.value && !booking.contactEmail.toLowerCase().includes(filterContactEmail.value.toLowerCase())) {
+      return false
     }
 
     // Filter by status
@@ -43,8 +57,23 @@ const filteredBookings = computed(() => {
   })
 })
 
+// Statistics
+const bookingStats = computed(() => {
+  const total = bookingStore.bookings.length
+  const paid = bookingStore.bookings.filter(b => b.status === 2).length
+  const unpaid = bookingStore.bookings.filter(b => b.status === 1).length
+
+  return {
+    total,
+    paid,
+    unpaid
+  }
+})
+
 const clearFilters = () => {
   searchQuery.value = ''
+  filterFlightNumber.value = ''
+  filterContactEmail.value = ''
   filterStatus.value = undefined
   showInactive.value = true
 }
@@ -58,6 +87,17 @@ const getStatusColor = (status: number) => {
   }
   return colors[status] || 'text-gray-600'
 }
+
+const handleCancelBooking = async (bookingId: string) => {
+  if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+    try {
+      await bookingStore.cancelBooking(bookingId)
+      await bookingStore.fetchAllBookings()
+    } catch (error) {
+      console.error('Failed to cancel booking:', error)
+    }
+  }
+}
 </script>
 
 <template>
@@ -67,6 +107,54 @@ const getStatusColor = (status: number) => {
       <button @click="router.push('/bookings/add')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
         Create Booking
       </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Bookings</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ bookingStats.total }}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Paid Bookings</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ bookingStats.paid }}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Unpaid Bookings</p>
+            <p class="text-3xl font-bold text-yellow-600 mt-2">{{ bookingStats.unpaid }}</p>
+          </div>
+          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Search Bar -->
@@ -81,7 +169,7 @@ const getStatusColor = (status: number) => {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search by booking ID, flight, contact, or route..."
+          placeholder="Universal search: booking ID, flight, contact, route, class, status..."
           class="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
@@ -105,7 +193,27 @@ const getStatusColor = (status: number) => {
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Flight Number</label>
+          <input
+            v-model="filterFlightNumber"
+            type="text"
+            placeholder="e.g., GA123"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+          <input
+            v-model="filterContactEmail"
+            type="text"
+            placeholder="e.g., user@example.com"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
           <select v-model="filterStatus" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -187,12 +295,21 @@ const getStatusColor = (status: number) => {
               <span :class="getStatusColor(booking.status)" class="font-medium">{{ booking.statusLabel }}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <button
-                @click="router.push(`/bookings/${booking.id}`)"
-                class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                View
-              </button>
+              <div class="flex gap-2">
+                <button
+                  @click="router.push(`/bookings/${booking.id}`)"
+                  class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  View
+                </button>
+                <button
+                  v-if="!booking.isDeleted && booking.status !== 3"
+                  @click="handleCancelBooking(booking.id)"
+                  class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Cancel
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

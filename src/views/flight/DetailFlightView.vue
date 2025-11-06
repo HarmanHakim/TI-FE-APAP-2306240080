@@ -94,6 +94,31 @@ const handleCancelFlight = async () => {
   }
 }
 
+const groupSeatsByRow = (seats: ReadSeatDto[]) => {
+  const rows = new Map<string, ReadSeatDto[]>()
+
+  seats.forEach(seat => {
+    // Extract row number from seat number (e.g., "1A" -> "1", "12B" -> "12")
+    const rowMatch = seat.seatNumber.match(/^(\d+)/)
+    const rowNumber = rowMatch ? rowMatch[1] : '0'
+
+    if (!rows.has(rowNumber)) {
+      rows.set(rowNumber, [])
+    }
+    rows.get(rowNumber)!.push(seat)
+  })
+
+  // Sort seats within each row by letter
+  rows.forEach(seatRow => {
+    seatRow.sort((a, b) => a.seatNumber.localeCompare(b.seatNumber))
+  })
+
+  // Return sorted by row number
+  return Array.from(rows.entries())
+    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    .map(([rowNum, seats]) => ({ rowNum, seats }))
+}
+
 onMounted(async () => {
   const flightId = route.params.id as string
   flight.value = await flightStore.fetchFlightById(flightId)
@@ -246,33 +271,112 @@ onMounted(async () => {
           </div>
           <div v-else>
             <!-- Group seats by class -->
-            <div v-for="cls in flight.classes" :key="cls.id" class="mb-6">
-              <h4 class="font-semibold text-gray-900 mb-3">{{ cls.classType }}</h4>
-              <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-                <div
-                  v-for="seat in seats.filter(s => s.classFlightId === cls.id)"
-                  :key="seat.id"
-                  :class="[
-                    'p-2 rounded text-center text-sm font-medium transition-all',
-                    seat.isAvailable
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                      : 'bg-red-100 text-red-800'
-                  ]"
-                  :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`"
-                >
-                  {{ seat.seatNumber }}
-                </div>
-              </div>
-            </div>
+            <div v-for="cls in flight.classes" :key="cls.id" class="mb-8">
+              <h4 class="font-semibold text-gray-900 mb-4 text-lg">{{ cls.classType }}</h4>
 
-            <div class="mt-4 flex gap-4 text-sm">
-              <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-green-100 rounded"></div>
-                <span>Available</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-red-100 rounded"></div>
-                <span>Occupied</span>
+              <div class="border border-gray-300 rounded-lg p-6 bg-linear-to-b from-blue-50 to-white max-w-2xl mx-auto">
+                <!-- Cockpit -->
+                <div class="text-center mb-6">
+                  <div class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-t-full text-sm font-semibold shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    COCKPIT
+                  </div>
+                </div>
+
+                <!-- Airplane Seat Layout -->
+                <div class="space-y-2">
+                  <div v-for="row in groupSeatsByRow(seats.filter(s => s.classFlightId === cls.id))" :key="row.rowNum" class="flex items-center gap-2">
+                    <!-- Row Number (Left) -->
+                    <div class="w-8 text-center text-xs font-bold text-gray-500">
+                      {{ row.rowNum }}
+                    </div>
+
+                    <!-- Seats Layout: A B | Aisle | C D -->
+                    <div class="flex-1 flex items-center gap-2">
+                      <!-- Left Side Seats (A, B) -->
+                      <div class="flex gap-2 flex-1 justify-end">
+                        <div
+                          v-for="seat in row.seats.filter(s => s.seatNumber.match(/[AB]$/))"
+                          :key="seat.id"
+                          :class="[
+                            'p-3 rounded-lg text-xs font-bold transition-all',
+                            'border-2 flex flex-col items-center justify-center w-12 h-14',
+                            seat.isAvailable
+                              ? 'bg-green-100 text-green-800 border-green-400'
+                              : 'bg-red-100 text-red-800 border-red-400'
+                          ]"
+                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`"
+                        >
+                          <!-- Seat Icon -->
+                          <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                            <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                          </svg>
+                          {{ seat.seatNumber }}
+                        </div>
+                      </div>
+
+                      <!-- Aisle -->
+                      <div class="w-8 border-l-2 border-r-2 border-dashed border-gray-300 h-14 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m0 0l-4-4m4 4l4-4" />
+                        </svg>
+                      </div>
+
+                      <!-- Right Side Seats (C, D) -->
+                      <div class="flex gap-2 flex-1">
+                        <div
+                          v-for="seat in row.seats.filter(s => s.seatNumber.match(/[CD]$/))"
+                          :key="seat.id"
+                          :class="[
+                            'p-3 rounded-lg text-xs font-bold transition-all',
+                            'border-2 flex flex-col items-center justify-center w-12 h-14',
+                            seat.isAvailable
+                              ? 'bg-green-100 text-green-800 border-green-400'
+                              : 'bg-red-100 text-red-800 border-red-400'
+                          ]"
+                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`"
+                        >
+                          <!-- Seat Icon -->
+                          <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                            <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                          </svg>
+                          {{ seat.seatNumber }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Row Number (Right) -->
+                    <div class="w-8 text-center text-xs font-bold text-gray-500">
+                      {{ row.rowNum }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="mt-6 flex flex-wrap justify-center gap-6 text-sm pt-6 border-t border-gray-300">
+                  <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-green-100 border-2 border-green-400 rounded-lg flex items-center justify-center">
+                      <svg class="w-5 h-5 text-green-800" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                      </svg>
+                    </div>
+                    <span class="text-gray-700 font-medium">Available</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-red-100 border-2 border-red-400 rounded-lg flex items-center justify-center">
+                      <svg class="w-5 h-5 text-red-800" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                      </svg>
+                    </div>
+                    <span class="text-gray-700 font-medium">Occupied</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

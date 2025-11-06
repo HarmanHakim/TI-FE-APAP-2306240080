@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router';
 
 const route = useRoute()
 
-const getLinkClass = (path: string) => route.path === path ? 'text-blue-600 font-semibold' : 'text-gray-700 hover:text-blue-600'
+const getLinkClass = (path: string) =>
+  route.path.startsWith(path)
+    ? 'text-blue-600 font-semibold'
+    : 'text-gray-700 hover:text-blue-600'
 </script>
 
 <template>
