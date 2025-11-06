@@ -5,6 +5,8 @@ import { useAirplaneStore } from '@/stores/airplane/airplane.store'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import VButton from '@/components/common/VButton.vue'
+
 const router = useRouter()
 const airplaneStore = useAirplaneStore()
 const airlineStore = useAirlineStore()
@@ -52,21 +54,24 @@ const handleSubmit = async () => {
 
       <div>
         <label class="block text-sm font-medium mb-2">Seat Capacity</label>
-        <input v-model.number="form.seatCapacity" type="number" min="1" required class="w-full px-4 py-2 border rounded" />
+        <input v-model.number="form.seatCapacity" type="number" min="1" required
+          class="w-full px-4 py-2 border rounded" />
       </div>
 
       <div>
         <label class="block text-sm font-medium mb-2">Manufacture Year</label>
-        <input v-model.number="form.manufactureYear" type="number" :min="1900" :max="new Date().getFullYear()" required class="w-full px-4 py-2 border rounded" />
+        <input v-model.number="form.manufactureYear" type="number" :min="1900" :max="new Date().getFullYear()" required
+          class="w-full px-4 py-2 border rounded" />
       </div>
 
       <div class="flex gap-4">
-        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        <VButton type="submit" class="flex-1 bg-blue-600 text-white hover:bg-blue-700">
           Register Airplane
-        </button>
-        <button type="button" @click="router.push('/airplanes')" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+        </VButton>
+        <VButton type="button" @click="router.push('/airplanes')"
+          class="flex-1 bg-gray-500 text-white hover:bg-gray-600">
           Cancel
-        </button>
+        </VButton>
       </div>
     </form>
   </div>
