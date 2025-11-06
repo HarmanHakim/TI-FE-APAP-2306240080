@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useFlightStore } from '@/stores/flight/flight.store'
+import type { CreateFlightDto } from '@/interfaces/flight.interface'
 import { useAirlineStore } from '@/stores/airline/airline.store'
 import { useAirplaneStore } from '@/stores/airplane/airplane.store'
-import type { CreateFlightDto } from '@/interfaces/flight.interface'
+import { useFlightStore } from '@/stores/flight/flight.store'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
@@ -43,6 +43,25 @@ const availableAirplanes = computed(() => {
   return airplaneStore.airplanes.filter(
     plane => plane.airlineId === formData.value.airlineId && !plane.isDeleted
   )
+})
+
+const selectedAirplane = computed(() => {
+  if (!formData.value.airplaneId) return null
+  return airplaneStore.airplanes.find(plane => plane.id === formData.value.airplaneId)
+})
+
+const totalClassSeats = computed(() => {
+  return classes.value.reduce((sum, cls) => sum + (cls.seatCapacity || 0), 0)
+})
+
+const remainingSeats = computed(() => {
+  if (!selectedAirplane.value) return 0
+  return selectedAirplane.value.seatCapacity - totalClassSeats.value
+})
+
+const isSeatCapacityValid = computed(() => {
+  if (!selectedAirplane.value) return true
+  return totalClassSeats.value <= selectedAirplane.value.seatCapacity
 })
 
 onMounted(async () => {
@@ -119,6 +138,16 @@ const validateForm = () => {
     }
   }
 
+  // Validate total seat capacity doesn't exceed airplane capacity
+  if (!isSeatCapacityValid.value) {
+    const airplaneCapacity = selectedAirplane.value?.seatCapacity || 0
+    toast.error(
+      `Total class seats (${totalClassSeats.value}) exceeds airplane capacity (${airplaneCapacity}). ` +
+      `Please reduce seat allocation.`
+    )
+    return false
+  }
+
   return true
 }
 
@@ -126,10 +155,8 @@ const handleSubmit = async () => {
   if (!validateForm()) return
 
   try {
-    // Note: Backend akan handle pembuatan ClassFlight dari informasi yang dikirim
-    // Sesuaikan dengan API backend Anda
-    await flightStore.createFlight(formData.value)
-    toast.success('Flight created successfully!')
+    // Create flight with classes
+    await flightStore.createFlight(formData.value, classes.value)
     router.push('/flights')
   } catch {
     // Error handled by store
@@ -369,6 +396,37 @@ const handleSubmit = async () => {
         <p class="text-sm text-gray-500 mt-4">
           * Note: Total seat capacity across all classes should not exceed airplane capacity
         </p>
+
+        <!-- Seat Capacity Summary -->
+        <div v-if="selectedAirplane" class="mt-4 p-4 rounded-lg border" :class="[
+          isSeatCapacityValid ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
+        ]">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium" :class="isSeatCapacityValid ? 'text-green-800' : 'text-red-800'">
+                Seat Capacity Summary
+              </p>
+              <p class="text-sm mt-1" :class="isSeatCapacityValid ? 'text-green-700' : 'text-red-700'">
+                Total class seats: <span class="font-semibold">{{ totalClassSeats }}</span> /
+                Airplane capacity: <span class="font-semibold">{{ selectedAirplane.seatCapacity }}</span>
+              </p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-medium" :class="isSeatCapacityValid ? 'text-green-700' : 'text-red-700'">
+                {{ isSeatCapacityValid ? 'Remaining' : 'Exceeded by' }}:
+              </p>
+              <p class="text-2xl font-bold" :class="isSeatCapacityValid ? 'text-green-800' : 'text-red-800'">
+                {{ Math.abs(remainingSeats) }} seats
+              </p>
+            </div>
+          </div>
+          <div v-if="!isSeatCapacityValid" class="mt-2 flex items-center text-sm text-red-700">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Please reduce the total seat allocation to match or be under the airplane capacity.
+          </div>
+        </div>
       </div>
 
       <!-- Submit Button -->
@@ -382,7 +440,13 @@ const handleSubmit = async () => {
         </button>
         <button
           type="submit"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          :disabled="!isSeatCapacityValid"
+          :class="[
+            'px-6 py-3 rounded-lg transition-all',
+            isSeatCapacityValid
+              ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          ]"
         >
           Create Flight
         </button>

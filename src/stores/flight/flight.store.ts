@@ -1,7 +1,14 @@
-import type { ReadFlightDto, CreateFlightDto, UpdateFlightDto, FlightQueryParams } from '@/interfaces/flight.interface';
-import { defineStore } from 'pinia';
+import type { CreateFlightDto, FlightQueryParams, ReadFlightDto, UpdateFlightDto } from '@/interfaces/flight.interface';
+import { classFlightService } from '@/services/classflight.service';
 import { flightService } from '@/services/flight.service';
+import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
+
+interface ClassConfig {
+  classType: string;
+  seatCapacity: number;
+  price: number;
+}
 
 export const useFlightStore = defineStore('flight', {
   state: () => ({
@@ -105,13 +112,34 @@ export const useFlightStore = defineStore('flight', {
       }
     },
 
-    async createFlight(flight: CreateFlightDto) {
+    async createFlight(flight: CreateFlightDto, classes?: ClassConfig[]) {
       this.loading = true;
       this.error = null;
 
       try {
+        // First, create the flight
         const response = await flightService.createFlight(flight);
-        this.flights.push(response.data);
+
+        // If classes are provided, create them
+        if (classes && classes.length > 0) {
+          const classPromises = classes.map(cls =>
+            classFlightService.createClassFlight({
+              flightId: flight.id,
+              classType: cls.classType,
+              seatCapacity: cls.seatCapacity,
+              price: cls.price
+            })
+          );
+
+          await Promise.all(classPromises);
+
+          // Refresh the flight data to include the newly created classes
+          const updatedFlight = await flightService.getFlightById(flight.id);
+          this.flights.push(updatedFlight.data);
+        } else {
+          this.flights.push(response.data);
+        }
+
         toast.success('Flight created successfully');
         return response.data;
       } catch (error) {
@@ -156,7 +184,8 @@ export const useFlightStore = defineStore('flight', {
         }
         toast.success('Flight cancelled successfully');
       } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Unknown error';
+        const err = error as { response?: { data?: { message?: string } }; message?: string };
+        this.error = err?.response?.data?.message || err?.message || 'Unknown error';
         toast.error(`Error cancelling flight: ${this.error}`);
         throw error;
       } finally {
