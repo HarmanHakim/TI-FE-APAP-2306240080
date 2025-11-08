@@ -30,7 +30,7 @@ export class SeatService {
   }
 
   async getAvailableSeats(classFlightId: number): Promise<CommonResponseInterface<ReadSeatDto[]>> {
-    const response = await axios.get(`${API_BASE_URL}/seats/available`, { params: { classFlightId } });
+    const response = await axios.get(`${API_BASE_URL}/seats/all`, { params: { classFlightId } });
     return response.data;
   }
 
