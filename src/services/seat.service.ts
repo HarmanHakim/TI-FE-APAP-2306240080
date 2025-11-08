@@ -44,8 +44,10 @@ export class SeatService {
     return response.data;
   }
 
-  async assignSeat(id: number, passengerId: string): Promise<CommonResponseInterface<ReadSeatDto>> {
-    const response = await axios.post(`${API_BASE_URL}/seats/${id}/assign`, null, { params: { passengerId } });
+  async assignSeat(id: number, passengerId: string, classFlightId: number): Promise<CommonResponseInterface<ReadSeatDto>> {
+    const response = await axios.post(`${API_BASE_URL}/seats/${id}/assign`, null, {
+      params: { passengerId, classFlightId }
+    });
     return response.data;
   }
 

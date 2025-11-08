@@ -269,7 +269,7 @@ const handleSubmit = async () => {
 
         // Assign new seat
         if (p.seatId) {
-          await seatService.assignSeat(p.seatId, passengerId!)
+          await seatService.assignSeat(p.seatId, passengerId!, classFlightId.value!)
         }
       }
 

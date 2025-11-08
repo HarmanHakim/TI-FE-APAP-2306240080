@@ -134,7 +134,7 @@ export const useAirlineStore = defineStore('airline', {
         this.airlines = this.airlines.filter(a => a.id !== id);
         toast.success('Airline deleted successfully');
       } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Unknown error';
+        this.error = error instanceof Error ? error.response.data.message : 'Unknown error';
         toast.error(`Error deleting airline: ${this.error}`);
         throw error;
       } finally {

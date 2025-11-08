@@ -230,7 +230,7 @@ const handleSubmit = async () => {
 
       // Assign seat to passenger
       if (p.seatId) {
-        await seatService.assignSeat(p.seatId, response.data.id)
+        await seatService.assignSeat(p.seatId, response.data.id, selectedClassFlightId.value!)
       }
     }
 

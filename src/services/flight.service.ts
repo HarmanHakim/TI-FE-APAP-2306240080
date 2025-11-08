@@ -55,7 +55,7 @@ export class FlightService {
   }
 
   async cancelFlight(id: string): Promise<CommonResponseInterface<object>> {
-    const response = await axios.post(`${API_BASE_URL}/flights/${id}/delete`);
+    const response = await axios.delete(`${API_BASE_URL}/flights/${id}/delete`);
     return response.data;
   }
 }
