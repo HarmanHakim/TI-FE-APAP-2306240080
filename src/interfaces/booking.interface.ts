@@ -62,8 +62,16 @@ export enum BookingStatus {
   Rescheduled = 4
 }
 
+export interface FlightStatistics {
+  flightId: string;
+  flightNumber: string;
+  route: string;
+  bookingCount: number;
+  potentialRevenue: number;
+}
+
 export interface BookingStatistics {
   totalBookings: number;
   potentialRevenue: number;
-  [key: string]: number | string | boolean | object;
+  flightStats?: FlightStatistics[];
 }

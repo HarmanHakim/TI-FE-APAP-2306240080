@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import VButton from '@/components/common/VButton.vue'
+import type { BookingStatistics } from '@/interfaces/booking.interface'
 import { bookingService } from '@/services/booking.service'
 import {
   BarElement,
@@ -19,21 +20,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 const router = useRouter()
 
-interface FlightStatistics {
-  flightId: string
-  flightNumber: string
-  route: string
-  bookingCount: number
-  potentialRevenue: number
-}
-
-interface StatisticsResponse {
-  totalBookings: number
-  potentialRevenue: number // Note: backend uses potentialRevenue, not totalRevenue
-  flightStats?: FlightStatistics[]
-}
-
-const statistics = ref<StatisticsResponse | null>(null)
+const statistics = ref<BookingStatistics | null>(null)
 const loading = ref(false)
 const startDate = ref('')
 const endDate = ref('')
@@ -53,9 +40,16 @@ const loadStatistics = async () => {
 
   loading.value = true
   try {
+    // Convert date to ISO string with time (start of day for start, end of day for end)
+    const startDateTime = new Date(startDate.value)
+    startDateTime.setHours(0, 0, 0, 0)
+
+    const endDateTime = new Date(endDate.value)
+    endDateTime.setHours(23, 59, 59, 999)
+
     const response = await bookingService.getBookingStatistics(
-      new Date(startDate.value).toISOString(),
-      new Date(endDate.value).toISOString()
+      startDateTime.toISOString(),
+      endDateTime.toISOString()
     )
     statistics.value = response.data
   } catch (error) {
@@ -111,8 +105,8 @@ const revenueChartData = computed(() => {
   }
 })
 
-// Chart options
-const chartOptions = {
+// Chart options for booking count
+const bookingChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -134,6 +128,31 @@ const chartOptions = {
   }
 }
 
+// Chart options for revenue
+const revenueChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: true,
+      position: 'top' as const
+    },
+    title: {
+      display: false
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        callback: (value: string | number) => {
+          return '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        }
+      }
+    }
+  }
+}
+
 onMounted(() => {
   setDefaultDates()
   loadStatistics()
@@ -144,7 +163,6 @@ onMounted(() => {
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Booking Statistics</h1>
-      <VButton @click="router.push('/')">Back to Home</VButton>
     </div>
 
     <!-- Date Range Filter -->
@@ -247,7 +265,7 @@ onMounted(() => {
             Booking Count per Flight
           </h2>
           <div class="h-96">
-            <Bar :data="bookingCountChartData" :options="chartOptions" />
+            <Bar :data="bookingCountChartData" :options="bookingChartOptions" />
           </div>
         </div>
 
@@ -260,7 +278,7 @@ onMounted(() => {
             Potential Revenue per Flight
           </h2>
           <div class="h-96">
-            <Bar :data="revenueChartData" :options="chartOptions" />
+            <Bar :data="revenueChartData" :options="revenueChartOptions" />
           </div>
         </div>
       </div>

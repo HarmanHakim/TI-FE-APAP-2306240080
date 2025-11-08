@@ -7,7 +7,7 @@ import VNavbar from './components/layout/VNavbar.vue';
 <template>
   <Toaster position="top-center" richColors />
   <VNavbar />
-  <main class="mt-12 w-full">
+  <main class="pt-16 md:pt-20 w-full min-h-screen">
     <RouterView />
   </main>
 </template>
