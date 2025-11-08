@@ -45,7 +45,7 @@ const setBookingMode = (mode: 'one-way' | 'two-way') => {
 
 const selectFlightForBooking = (flightId: string) => {
   if (bookingMode.value === 'one-way') {
-    router.push(`/bookings/add?flightId=${flightId}`)
+    router.push(`/bookings/add?departureFlightId=${flightId}`)
   } else {
     // Two-way mode
     if (!selectedDepartureFlight.value) {

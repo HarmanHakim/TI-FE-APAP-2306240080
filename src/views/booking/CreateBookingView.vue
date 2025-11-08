@@ -20,11 +20,14 @@ interface PassengerForm {
   birthDate: string
   gender: number
   idPassport: string
-  seatId: number | null
+  departureSeatId: number | null
+  returnSeatId: number | null
 }
 
-const selectedFlightId = ref<string>('')
-const selectedClassFlightId = ref<number | null>(null)
+const departureFlightId = ref<string>('')
+const returnFlightId = ref<string>('')
+const departureClassFlightId = ref<number | null>(null)
+const returnClassFlightId = ref<number | null>(null)
 const contactEmail = ref('')
 const contactPhone = ref('')
 const passengers = ref<PassengerForm[]>([
@@ -33,38 +36,71 @@ const passengers = ref<PassengerForm[]>([
     birthDate: '',
     gender: 1,
     idPassport: '',
-    seatId: null
+    departureSeatId: null,
+    returnSeatId: null
   }
 ])
 
-const availableSeats = ref<ReadSeatDto[]>([])
+const departureSeats = ref<ReadSeatDto[]>([])
+const returnSeats = ref<ReadSeatDto[]>([])
 const loading = ref(true)
+const isRoundTrip = ref(false)
 
-const selectedFlight = computed(() => {
-  return flightStore.flights.find(f => f.id === selectedFlightId.value)
+const departureFlight = computed(() => {
+  return flightStore.flights.find(f => f.id === departureFlightId.value)
 })
 
-const selectedClass = computed(() => {
-  if (!selectedFlight.value || !selectedClassFlightId.value) return null
-  return selectedFlight.value.classes.find(c => c.id === selectedClassFlightId.value)
+const returnFlight = computed(() => {
+  if (!returnFlightId.value) return null
+  return flightStore.flights.find(f => f.id === returnFlightId.value)
+})
+
+const departureClass = computed(() => {
+  if (!departureFlight.value || !departureClassFlightId.value) return null
+  return departureFlight.value.classes.find(c => c.id === departureClassFlightId.value)
+})
+
+const returnClass = computed(() => {
+  if (!returnFlight.value || !returnClassFlightId.value) return null
+  return returnFlight.value.classes.find(c => c.id === returnClassFlightId.value)
 })
 
 const totalPrice = computed(() => {
-  if (!selectedClass.value) return 0
-  return selectedClass.value.price * passengers.value.length
+  let total = 0
+  if (departureClass.value) {
+    total += departureClass.value.price * passengers.value.length
+  }
+  if (isRoundTrip.value && returnClass.value) {
+    total += returnClass.value.price * passengers.value.length
+  }
+  return total
 })
 
-const loadAvailableSeats = async () => {
-  if (!selectedClassFlightId.value) {
-    availableSeats.value = []
+const loadDepartureSeats = async () => {
+  if (!departureClassFlightId.value) {
+    departureSeats.value = []
     return
   }
 
   try {
-    const response = await seatService.getAvailableSeats(selectedClassFlightId.value)
-    availableSeats.value = response.data
+    const response = await seatService.getAvailableSeats(departureClassFlightId.value)
+    departureSeats.value = response.data
   } catch {
-    toast.error('Failed to load available seats')
+    toast.error('Failed to load departure seats')
+  }
+}
+
+const loadReturnSeats = async () => {
+  if (!returnClassFlightId.value) {
+    returnSeats.value = []
+    return
+  }
+
+  try {
+    const response = await seatService.getAvailableSeats(returnClassFlightId.value)
+    returnSeats.value = response.data
+  } catch {
+    toast.error('Failed to load return seats')
   }
 }
 
@@ -79,7 +115,8 @@ const addPassenger = () => {
     birthDate: '',
     gender: 1,
     idPassport: '',
-    seatId: null
+    departureSeatId: null,
+    returnSeatId: null
   })
 }
 
@@ -91,8 +128,12 @@ const removePassenger = (index: number) => {
   passengers.value.splice(index, 1)
 }
 
-const isSeatSelected = (seatId: number) => {
-  return passengers.value.some(p => p.seatId === seatId)
+const isSeatSelected = (seatId: number, flightType: 'departure' | 'return') => {
+  if (flightType === 'departure') {
+    return passengers.value.some(p => p.departureSeatId === seatId)
+  } else {
+    return passengers.value.some(p => p.returnSeatId === seatId)
+  }
 }
 
 const groupSeatsByRow = (seats: ReadSeatDto[]) => {
@@ -120,19 +161,27 @@ const groupSeatsByRow = (seats: ReadSeatDto[]) => {
     .map(([rowNum, seats]) => ({ rowNum, seats }))
 }
 
-const selectSeat = (seatId: number) => {
+const selectSeat = (seatId: number, flightType: 'departure' | 'return') => {
   // Check if seat is already selected
-  const alreadySelectedIndex = passengers.value.findIndex(p => p.seatId === seatId)
+  const alreadySelectedIndex = passengers.value.findIndex(p =>
+    flightType === 'departure' ? p.departureSeatId === seatId : p.returnSeatId === seatId
+  )
 
   if (alreadySelectedIndex !== -1) {
     // Deselect the seat
-    passengers.value[alreadySelectedIndex].seatId = null
-    toast.info(`Seat deselected from Passenger ${alreadySelectedIndex + 1}`)
+    if (flightType === 'departure') {
+      passengers.value[alreadySelectedIndex].departureSeatId = null
+    } else {
+      passengers.value[alreadySelectedIndex].returnSeatId = null
+    }
+    toast.info(`${flightType === 'departure' ? 'Departure' : 'Return'} seat deselected from Passenger ${alreadySelectedIndex + 1}`)
     return
   }
 
-  // Find first passenger without a seat
-  const passengerIndex = passengers.value.findIndex(p => p.seatId === null)
+  // Find first passenger without a seat for this flight
+  const passengerIndex = passengers.value.findIndex(p =>
+    flightType === 'departure' ? p.departureSeatId === null : p.returnSeatId === null
+  )
 
   if (passengerIndex === -1) {
     toast.error('All passengers already have seats selected. Deselect a seat first.')
@@ -140,29 +189,49 @@ const selectSeat = (seatId: number) => {
   }
 
   // Assign seat to passenger
-  passengers.value[passengerIndex].seatId = seatId
-  toast.success(`Seat ${getSeatLabel(seatId)} assigned to Passenger ${passengerIndex + 1}`)
+  if (flightType === 'departure') {
+    passengers.value[passengerIndex].departureSeatId = seatId
+  } else {
+    passengers.value[passengerIndex].returnSeatId = seatId
+  }
+  const seatLabel = getSeatLabel(seatId, flightType)
+  toast.success(`${flightType === 'departure' ? 'Departure' : 'Return'} seat ${seatLabel} assigned to Passenger ${passengerIndex + 1}`)
 }
 
-const getPassengerNumberForSeat = (seatId: number): number | null => {
-  const index = passengers.value.findIndex(p => p.seatId === seatId)
+const getPassengerNumberForSeat = (seatId: number, flightType: 'departure' | 'return'): number | null => {
+  const index = passengers.value.findIndex(p =>
+    flightType === 'departure' ? p.departureSeatId === seatId : p.returnSeatId === seatId
+  )
   return index !== -1 ? index + 1 : null
 }
 
-const getSeatLabel = (seatId: number) => {
-  const seat = availableSeats.value.find(s => s.id === seatId)
+const getSeatLabel = (seatId: number, flightType: 'departure' | 'return') => {
+  const seats = flightType === 'departure' ? departureSeats.value : returnSeats.value
+  const seat = seats.find(s => s.id === seatId)
   return seat ? seat.seatNumber : 'Not selected'
 }
 
 const validateForm = () => {
-  if (!selectedFlightId.value) {
-    toast.error('Please select a flight')
+  if (!departureFlightId.value) {
+    toast.error('Please select a departure flight')
     return false
   }
 
-  if (!selectedClassFlightId.value) {
-    toast.error('Please select a class')
+  if (!departureClassFlightId.value) {
+    toast.error('Please select a class for departure flight')
     return false
+  }
+
+  if (isRoundTrip.value) {
+    if (!returnFlightId.value) {
+      toast.error('Please select a return flight')
+      return false
+    }
+
+    if (!returnClassFlightId.value) {
+      toast.error('Please select a class for return flight')
+      return false
+    }
   }
 
   if (!contactEmail.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.value)) {
@@ -193,18 +262,33 @@ const validateForm = () => {
       return false
     }
 
-    if (!p.seatId) {
-      toast.error(`Passenger ${i + 1}: Please select a seat`)
+    if (!p.departureSeatId) {
+      toast.error(`Passenger ${i + 1}: Please select a departure seat`)
+      return false
+    }
+
+    if (isRoundTrip.value && !p.returnSeatId) {
+      toast.error(`Passenger ${i + 1}: Please select a return seat`)
       return false
     }
   }
 
-  // Check for duplicate seats
-  const seatIds = passengers.value.map(p => p.seatId)
-  const uniqueSeats = new Set(seatIds)
-  if (seatIds.length !== uniqueSeats.size) {
-    toast.error('Each passenger must have a different seat')
+  // Check for duplicate departure seats
+  const departureSeatIds = passengers.value.map(p => p.departureSeatId)
+  const uniqueDepartureSeats = new Set(departureSeatIds)
+  if (departureSeatIds.length !== uniqueDepartureSeats.size) {
+    toast.error('Each passenger must have a different departure seat')
     return false
+  }
+
+  // Check for duplicate return seats if round trip
+  if (isRoundTrip.value) {
+    const returnSeatIds = passengers.value.map(p => p.returnSeatId)
+    const uniqueReturnSeats = new Set(returnSeatIds)
+    if (returnSeatIds.length !== uniqueReturnSeats.size) {
+      toast.error('Each passenger must have a different return seat')
+      return false
+    }
   }
 
   return true
@@ -227,31 +311,58 @@ const handleSubmit = async () => {
 
       const response = await passengerService.createPassenger(passengerData)
       passengerIds.push(response.data.id)
+    }
 
-      // Assign seat to passenger
-      if (p.seatId) {
-        await seatService.assignSeat(p.seatId, response.data.id, selectedClassFlightId.value!)
+    // Step 2: Assign departure seats and create departure booking
+    for (let i = 0; i < passengers.value.length; i++) {
+      const p = passengers.value[i]
+      if (p.departureSeatId) {
+        await seatService.assignSeat(p.departureSeatId, passengerIds[i], departureClassFlightId.value!)
       }
     }
 
-    // Step 2: Create booking with passenger IDs
-    const bookingId = `BK-${Date.now().toString().slice(-8)}`
-    const bookingData: CreateBookingDto = {
-      id: bookingId,
-      flightId: selectedFlightId.value,
-      classFlightId: selectedClassFlightId.value!,
+    const departureBookingId = `BK-${Date.now().toString().slice(-8)}`
+    const departureBookingData: CreateBookingDto = {
+      id: departureBookingId,
+      flightId: departureFlightId.value,
+      classFlightId: departureClassFlightId.value!,
       contactEmail: contactEmail.value,
       contactPhone: contactPhone.value,
       passengerCount: passengers.value.length,
-      totalPrice: totalPrice.value,
+      totalPrice: (departureClass.value?.price || 0) * passengers.value.length,
       passengerIds: passengerIds
     }
 
-    await bookingStore.createBooking(bookingData)
-    toast.success('Booking created successfully!')
+    await bookingStore.createBooking(departureBookingData)
+
+    // Step 3: If round trip, assign return seats and create return booking
+    if (isRoundTrip.value && returnFlightId.value && returnClassFlightId.value) {
+      for (let i = 0; i < passengers.value.length; i++) {
+        const p = passengers.value[i]
+        if (p.returnSeatId) {
+          await seatService.assignSeat(p.returnSeatId, passengerIds[i], returnClassFlightId.value!)
+        }
+      }
+
+      const returnBookingId = `BK-${Date.now().toString().slice(-8)}`
+      const returnBookingData: CreateBookingDto = {
+        id: returnBookingId,
+        flightId: returnFlightId.value,
+        classFlightId: returnClassFlightId.value!,
+        contactEmail: contactEmail.value,
+        contactPhone: contactPhone.value,
+        passengerCount: passengers.value.length,
+        totalPrice: (returnClass.value?.price || 0) * passengers.value.length,
+        passengerIds: passengerIds
+      }
+
+      await bookingStore.createBooking(returnBookingData)
+    }
+
+    toast.success(isRoundTrip.value ? 'Round trip bookings created successfully!' : 'Booking created successfully!')
     router.push('/bookings')
-  } catch {
-    // Error handled by store/services
+  } catch (error) {
+    console.error('Error creating booking:', error)
     toast.error('Failed to create booking. Please try again.')
   }
 }
@@ -259,10 +370,17 @@ const handleSubmit = async () => {
 onMounted(async () => {
   await flightStore.fetchAllFlights()
 
-  // Pre-select flight if provided in query
-  const flightId = route.query.flightId as string
-  if (flightId) {
-    selectedFlightId.value = flightId
+  // Check if departure and return flights are provided in query
+  const departureId = route.query.departureFlightId as string
+  const returnId = route.query.returnFlightId as string
+
+  if (departureId) {
+    departureFlightId.value = departureId
+  }
+
+  if (returnId) {
+    returnFlightId.value = returnId
+    isRoundTrip.value = true
   }
 
   loading.value = false
@@ -279,14 +397,14 @@ onMounted(async () => {
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <!-- Flight Selection -->
+      <!-- Departure Flight Selection -->
       <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-xl font-semibold mb-4">Flight Information</h2>
+        <h2 class="text-xl font-semibold mb-4">Departure Flight Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Flight -->
+          <!-- Departure Flight -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Flight *</label>
-            <select v-model="selectedFlightId" required
+            <label class="block text-sm font-medium text-gray-700 mb-2">Departure Flight *</label>
+            <select v-model="departureFlightId" required
               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
               <option value="">Select Flight</option>
               <option v-for="flight in flightStore.flights" :key="flight.id" :value="flight.id">
@@ -296,13 +414,13 @@ onMounted(async () => {
             </select>
           </div>
 
-          <!-- Class -->
+          <!-- Departure Class -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Class *</label>
-            <select v-model="selectedClassFlightId" @change="loadAvailableSeats" required :disabled="!selectedFlightId"
+            <select v-model="departureClassFlightId" @change="loadDepartureSeats" required :disabled="!departureFlightId"
               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
               <option :value="null">Select Class</option>
-              <option v-for="cls in selectedFlight?.classes" :key="cls.id" :value="cls.id"
+              <option v-for="cls in departureFlight?.classes" :key="cls.id" :value="cls.id"
                 :disabled="cls.availableSeats === 0">
                 {{ cls.classType }} - ${{ cls.price.toFixed(2) }}
                 ({{ cls.availableSeats }} seats available)
@@ -311,15 +429,60 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Flight Summary -->
-        <div v-if="selectedFlight" class="mt-4 p-4 bg-blue-50 rounded-lg">
-          <p class="text-sm font-medium text-blue-900">Selected Flight:</p>
+        <!-- Departure Flight Summary -->
+        <div v-if="departureFlight" class="mt-4 p-4 bg-blue-50 rounded-lg">
+          <p class="text-sm font-medium text-blue-900">Selected Departure Flight:</p>
           <p class="text-blue-800">
-            {{ selectedFlight.airlineName }} - {{ selectedFlight.airplaneModel }}
+            {{ departureFlight.airlineName }} - {{ departureFlight.airplaneModel }}
           </p>
           <p class="text-sm text-blue-700">
-            {{ selectedFlight.originAirportCode }} → {{ selectedFlight.destinationAirportCode }}
-            • {{ new Date(selectedFlight.departureTime).toLocaleString() }}
+            {{ departureFlight.originAirportCode }} → {{ departureFlight.destinationAirportCode }}
+            • {{ new Date(departureFlight.departureTime).toLocaleString() }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Return Flight Selection (if round trip) -->
+      <div v-if="isRoundTrip" class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Return Flight Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Return Flight -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Return Flight *</label>
+            <select v-model="returnFlightId" required
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+              <option value="">Select Flight</option>
+              <option v-for="flight in flightStore.flights" :key="flight.id" :value="flight.id">
+                {{ flight.id }} - {{ flight.originAirportCode }} → {{ flight.destinationAirportCode }}
+                ({{ new Date(flight.departureTime).toLocaleDateString() }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Return Class -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Class *</label>
+            <select v-model="returnClassFlightId" @change="loadReturnSeats" required :disabled="!returnFlightId"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-100">
+              <option :value="null">Select Class</option>
+              <option v-for="cls in returnFlight?.classes" :key="cls.id" :value="cls.id"
+                :disabled="cls.availableSeats === 0">
+                {{ cls.classType }} - ${{ cls.price.toFixed(2) }}
+                ({{ cls.availableSeats }} seats available)
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Return Flight Summary -->
+        <div v-if="returnFlight" class="mt-4 p-4 bg-green-50 rounded-lg">
+          <p class="text-sm font-medium text-green-900">Selected Return Flight:</p>
+          <p class="text-green-800">
+            {{ returnFlight.airlineName }} - {{ returnFlight.airplaneModel }}
+          </p>
+          <p class="text-sm text-green-700">
+            {{ returnFlight.originAirportCode }} → {{ returnFlight.destinationAirportCode }}
+            • {{ new Date(returnFlight.departureTime).toLocaleString() }}
           </p>
         </div>
       </div>
@@ -342,18 +505,18 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Seat Selection Section -->
-      <div v-if="selectedClassFlightId" class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-xl font-semibold mb-4">Select Seats for Passengers</h2>
+      <!-- Departure Seat Selection Section -->
+      <div v-if="departureClassFlightId" class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Select Departure Seats for Passengers</h2>
 
-        <div v-if="availableSeats.length === 0" class="p-8 bg-gray-50 rounded-lg text-center text-gray-500">
+        <div v-if="departureSeats.length === 0" class="p-8 bg-gray-50 rounded-lg text-center text-gray-500">
           <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
           <p class="font-medium">No seats available for this class</p>
         </div>
 
-        <div v-else class="border border-gray-300 rounded-lg p-6 bg-gradient-to-b from-blue-50 to-white">
+        <div v-else class="border border-gray-300 rounded-lg p-6 bg-linear-to-b from-blue-50 to-white">
           <!-- Cockpit -->
           <div class="text-center mb-6">
             <div
@@ -367,7 +530,7 @@ onMounted(async () => {
 
           <!-- Seat Map - Airplane Layout -->
           <div class="max-w-md mx-auto space-y-2">
-            <div v-for="row in groupSeatsByRow(availableSeats)" :key="row.rowNum" class="flex items-center gap-2">
+            <div v-for="row in groupSeatsByRow(departureSeats)" :key="row.rowNum" class="flex items-center gap-2">
               <!-- Row Number (Left) -->
               <div class="w-8 text-center text-xs font-bold text-gray-500">
                 {{ row.rowNum }}
@@ -378,14 +541,14 @@ onMounted(async () => {
                 <!-- Left Side Seats (A, B) -->
                 <div class="flex gap-2 flex-1 justify-end">
                   <button v-for="seat in row.seats.filter(s => s.seatNumber.match(/[AB]$/))" :key="seat.id"
-                    type="button" @click="selectSeat(seat.id)" :class="[
+                    type="button" @click="selectSeat(seat.id, 'departure')" :class="[
                       'relative p-3 rounded-lg text-xs font-bold transition-all duration-200',
                       'border-2 flex flex-col items-center justify-center w-12 h-14',
-                      isSeatSelected(seat.id)
+                      isSeatSelected(seat.id, 'departure')
                         ? 'bg-blue-600 text-white border-blue-700 shadow-lg scale-105'
                         : 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200 hover:shadow-md hover:scale-105'
-                    ]" :title="isSeatSelected(seat.id)
-                      ? `Passenger ${getPassengerNumberForSeat(seat.id)}`
+                    ]" :title="isSeatSelected(seat.id, 'departure')
+                      ? `Passenger ${getPassengerNumberForSeat(seat.id, 'departure')}`
                       : 'Click to select'">
                     <!-- Seat Icon -->
                     <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
@@ -395,9 +558,9 @@ onMounted(async () => {
                     {{ seat.seatNumber }}
 
                     <!-- Passenger Number Badge -->
-                    <span v-if="getPassengerNumberForSeat(seat.id)"
+                    <span v-if="getPassengerNumberForSeat(seat.id, 'departure')"
                       class="absolute -top-2 -right-2 w-6 h-6 bg-blue-800 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
-                      {{ getPassengerNumberForSeat(seat.id) }}
+                      {{ getPassengerNumberForSeat(seat.id, 'departure') }}
                     </span>
                   </button>
                 </div>
@@ -414,14 +577,14 @@ onMounted(async () => {
                 <!-- Right Side Seats (C, D) -->
                 <div class="flex gap-2 flex-1">
                   <button v-for="seat in row.seats.filter(s => s.seatNumber.match(/[CD]$/))" :key="seat.id"
-                    type="button" @click="selectSeat(seat.id)" :class="[
+                    type="button" @click="selectSeat(seat.id, 'departure')" :class="[
                       'relative p-3 rounded-lg text-xs font-bold transition-all duration-200',
                       'border-2 flex flex-col items-center justify-center w-12 h-14',
-                      isSeatSelected(seat.id)
+                      isSeatSelected(seat.id, 'departure')
                         ? 'bg-blue-600 text-white border-blue-700 shadow-lg scale-105'
                         : 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200 hover:shadow-md hover:scale-105'
-                    ]" :title="isSeatSelected(seat.id)
-                      ? `Passenger ${getPassengerNumberForSeat(seat.id)}`
+                    ]" :title="isSeatSelected(seat.id, 'departure')
+                      ? `Passenger ${getPassengerNumberForSeat(seat.id, 'departure')}`
                       : 'Click to select'">
                     <!-- Seat Icon -->
                     <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
@@ -431,9 +594,9 @@ onMounted(async () => {
                     {{ seat.seatNumber }}
 
                     <!-- Passenger Number Badge -->
-                    <span v-if="getPassengerNumberForSeat(seat.id)"
+                    <span v-if="getPassengerNumberForSeat(seat.id, 'departure')"
                       class="absolute -top-2 -right-2 w-6 h-6 bg-blue-800 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
-                      {{ getPassengerNumberForSeat(seat.id) }}
+                      {{ getPassengerNumberForSeat(seat.id, 'departure') }}
                     </span>
                   </button>
                 </div>
@@ -475,15 +638,163 @@ onMounted(async () => {
 
           <!-- Selection Summary -->
           <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 class="font-semibold text-blue-900 mb-2">Selected Seats:</h4>
+            <h4 class="font-semibold text-blue-900 mb-2">Selected Departure Seats:</h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               <div v-for="(passenger, index) in passengers" :key="index" :class="[
                 'px-3 py-2 rounded-lg text-sm font-medium',
-                passenger.seatId
+                passenger.departureSeatId
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-500'
               ]">
-                Passenger {{ index + 1 }}: {{ passenger.seatId ? getSeatLabel(passenger.seatId) : 'Not selected' }}
+                Passenger {{ index + 1 }}: {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId, 'departure') : 'Not selected' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Return Seat Selection Section -->
+      <div v-if="isRoundTrip && returnClassFlightId" class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Select Return Seats for Passengers</h2>
+
+        <div v-if="returnSeats.length === 0" class="p-8 bg-gray-50 rounded-lg text-center text-gray-500">
+          <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <p class="font-medium">No seats available for this class</p>
+        </div>
+
+        <div v-else class="border border-gray-300 rounded-lg p-6 bg-linear-to-b from-green-50 to-white">
+          <!-- Cockpit -->
+          <div class="text-center mb-6">
+            <div
+              class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-t-full text-sm font-semibold shadow-md">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+              COCKPIT
+            </div>
+          </div>
+
+          <!-- Seat Map - Airplane Layout -->
+          <div class="max-w-md mx-auto space-y-2">
+            <div v-for="row in groupSeatsByRow(returnSeats)" :key="row.rowNum" class="flex items-center gap-2">
+              <!-- Row Number (Left) -->
+              <div class="w-8 text-center text-xs font-bold text-gray-500">
+                {{ row.rowNum }}
+              </div>
+
+              <!-- Seats Layout: A B | Aisle | C D -->
+              <div class="flex-1 flex items-center gap-2">
+                <!-- Left Side Seats (A, B) -->
+                <div class="flex gap-2 flex-1 justify-end">
+                  <button v-for="seat in row.seats.filter(s => s.seatNumber.match(/[AB]$/))" :key="seat.id"
+                    type="button" @click="selectSeat(seat.id, 'return')" :class="[
+                      'relative p-3 rounded-lg text-xs font-bold transition-all duration-200',
+                      'border-2 flex flex-col items-center justify-center w-12 h-14',
+                      isSeatSelected(seat.id, 'return')
+                        ? 'bg-green-600 text-white border-green-700 shadow-lg scale-105'
+                        : 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200 hover:shadow-md hover:scale-105'
+                    ]" :title="isSeatSelected(seat.id, 'return')
+                      ? `Passenger ${getPassengerNumberForSeat(seat.id, 'return')}`
+                      : 'Click to select'">
+                    <!-- Seat Icon -->
+                    <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                      <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    {{ seat.seatNumber }}
+
+                    <!-- Passenger Number Badge -->
+                    <span v-if="getPassengerNumberForSeat(seat.id, 'return')"
+                      class="absolute -top-2 -right-2 w-6 h-6 bg-green-800 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                      {{ getPassengerNumberForSeat(seat.id, 'return') }}
+                    </span>
+                  </button>
+                </div>
+
+                <!-- Aisle -->
+                <div
+                  class="w-8 border-l-2 border-r-2 border-dashed border-gray-300 h-14 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 5v14m0 0l-4-4m4 4l4-4" />
+                  </svg>
+                </div>
+
+                <!-- Right Side Seats (C, D) -->
+                <div class="flex gap-2 flex-1">
+                  <button v-for="seat in row.seats.filter(s => s.seatNumber.match(/[CD]$/))" :key="seat.id"
+                    type="button" @click="selectSeat(seat.id, 'return')" :class="[
+                      'relative p-3 rounded-lg text-xs font-bold transition-all duration-200',
+                      'border-2 flex flex-col items-center justify-center w-12 h-14',
+                      isSeatSelected(seat.id, 'return')
+                        ? 'bg-green-600 text-white border-green-700 shadow-lg scale-105'
+                        : 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200 hover:shadow-md hover:scale-105'
+                    ]" :title="isSeatSelected(seat.id, 'return')
+                      ? `Passenger ${getPassengerNumberForSeat(seat.id, 'return')}`
+                      : 'Click to select'">
+                    <!-- Seat Icon -->
+                    <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                      <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    {{ seat.seatNumber }}
+
+                    <!-- Passenger Number Badge -->
+                    <span v-if="getPassengerNumberForSeat(seat.id, 'return')"
+                      class="absolute -top-2 -right-2 w-6 h-6 bg-green-800 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                      {{ getPassengerNumberForSeat(seat.id, 'return') }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Row Number (Right) -->
+              <div class="w-8 text-center text-xs font-bold text-gray-500">
+                {{ row.rowNum }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="mt-8 flex flex-wrap justify-center gap-6 text-sm pt-6 border-t border-gray-300">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 bg-green-100 border-2 border-green-400 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-800" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                  <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                </svg>
+              </div>
+              <span class="text-gray-700 font-medium">Available</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div
+                class="relative w-10 h-10 bg-green-600 border-2 border-green-700 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                  <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
+                </svg>
+                <span
+                  class="absolute -top-1 -right-1 w-5 h-5 bg-green-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  1
+                </span>
+              </div>
+              <span class="text-gray-700 font-medium">Selected (with passenger #)</span>
+            </div>
+          </div>
+
+          <!-- Selection Summary -->
+          <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="font-semibold text-green-900 mb-2">Selected Return Seats:</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              <div v-for="(passenger, index) in passengers" :key="index" :class="[
+                'px-3 py-2 rounded-lg text-sm font-medium',
+                passenger.returnSeatId
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-500'
+              ]">
+                Passenger {{ index + 1 }}: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') : 'Not selected' }}
               </div>
             </div>
           </div>
@@ -494,7 +805,7 @@ onMounted(async () => {
       <div class="bg-white p-6 rounded-lg shadow">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Passenger Information ({{ passengers.length }}/10)</h2>
-          <button type="button" @click="addPassenger" :disabled="passengers.length >= 10 || !selectedClassFlightId"
+          <button type="button" @click="addPassenger" :disabled="passengers.length >= 10 || !departureClassFlightId"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -513,15 +824,23 @@ onMounted(async () => {
               </svg>
             </button>
 
-            <div class="flex items-center gap-2 mb-3">
+            <div class="flex items-center gap-2 mb-3 flex-wrap">
               <h3 class="font-semibold">Passenger {{ index + 1 }}</h3>
               <span :class="[
                 'px-2 py-1 rounded text-xs font-semibold',
-                passenger.seatId
+                passenger.departureSeatId
                   ? 'bg-blue-100 text-blue-800'
                   : 'bg-red-100 text-red-800'
               ]">
-                {{ passenger.seatId ? `Seat: ${getSeatLabel(passenger.seatId)}` : 'No seat selected' }}
+                Departure: {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId, 'departure') : 'No seat' }}
+              </span>
+              <span v-if="isRoundTrip" :class="[
+                'px-2 py-1 rounded text-xs font-semibold',
+                passenger.returnSeatId
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              ]">
+                Return: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') : 'No seat' }}
               </span>
             </div>
 
@@ -566,19 +885,54 @@ onMounted(async () => {
       <div class="bg-white p-6 rounded-lg shadow">
         <h2 class="text-xl font-semibold mb-4">Booking Summary</h2>
         <div class="space-y-2">
-          <div class="flex justify-between text-gray-700">
-            <span>Class:</span>
-            <span class="font-medium">{{ selectedClass?.classType || '-' }}</span>
+          <!-- Departure Flight Summary -->
+          <div class="pb-2 border-b">
+            <p class="text-sm font-medium text-gray-600 mb-2">Departure Flight:</p>
+            <div class="pl-4 space-y-1">
+              <div class="flex justify-between text-gray-700">
+                <span>Class:</span>
+                <span class="font-medium">{{ departureClass?.classType || '-' }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700">
+                <span>Price per passenger:</span>
+                <span class="font-medium">${{ departureClass?.price.toFixed(2) || '0.00' }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700">
+                <span>Passengers:</span>
+                <span class="font-medium">{{ passengers.length }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700 font-semibold">
+                <span>Subtotal:</span>
+                <span class="text-blue-600">${{ ((departureClass?.price || 0) * passengers.length).toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
-          <div class="flex justify-between text-gray-700">
-            <span>Price per passenger:</span>
-            <span class="font-medium">${{ selectedClass?.price.toFixed(2) || '0.00' }}</span>
+
+          <!-- Return Flight Summary -->
+          <div v-if="isRoundTrip && returnClass" class="pb-2 border-b">
+            <p class="text-sm font-medium text-gray-600 mb-2">Return Flight:</p>
+            <div class="pl-4 space-y-1">
+              <div class="flex justify-between text-gray-700">
+                <span>Class:</span>
+                <span class="font-medium">{{ returnClass.classType }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700">
+                <span>Price per passenger:</span>
+                <span class="font-medium">${{ returnClass.price.toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700">
+                <span>Passengers:</span>
+                <span class="font-medium">{{ passengers.length }}</span>
+              </div>
+              <div class="flex justify-between text-gray-700 font-semibold">
+                <span>Subtotal:</span>
+                <span class="text-green-600">${{ (returnClass.price * passengers.length).toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
-          <div class="flex justify-between text-gray-700">
-            <span>Number of passengers:</span>
-            <span class="font-medium">{{ passengers.length }}</span>
-          </div>
-          <div class="border-t pt-2 mt-2 flex justify-between text-lg font-bold">
+
+          <!-- Total -->
+          <div class="pt-2 flex justify-between text-lg font-bold">
             <span>Total Price:</span>
             <span class="text-green-600">${{ totalPrice.toFixed(2) }}</span>
           </div>
