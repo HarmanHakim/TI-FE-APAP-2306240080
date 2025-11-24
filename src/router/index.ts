@@ -14,6 +14,8 @@ import CreateFlightView from '@/views/flight/CreateFlightView.vue'
 import DetailFlightView from '@/views/flight/DetailFlightView.vue'
 import EditFlightView from '@/views/flight/EditFlightView.vue'
 import FlightView from '@/views/flight/FlightView.vue'
+import CouponsView from '@/views/CouponsView.vue'
+import LoyaltyDashboardView from '@/views/LoyaltyDashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -93,6 +95,16 @@ const router = createRouter({
       path: '/bookings/:id/edit',
       name: 'edit-booking',
       component: EditBookingView,
+    },
+    {
+      path: '/coupons',
+      name: 'coupons',
+      component: CouponsView,
+    },
+    {
+      path: '/loyalty',
+      name: 'loyalty',
+      component: LoyaltyDashboardView,
     },
     {
       path: '/statistics',

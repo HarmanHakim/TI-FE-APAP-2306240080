@@ -35,6 +35,8 @@ const closeMobileMenu = () => {
                 <RouterLink to="/airplanes" :class="getLinkClass('/airplanes')">Airplanes</RouterLink>
                 <RouterLink to="/airlines" :class="getLinkClass('/airlines')">Airlines</RouterLink>
                 <RouterLink to="/statistics" :class="getLinkClass('/statistics')">Statistics</RouterLink>
+                <RouterLink to="/coupons" :class="getLinkClass('/coupons')">Coupons</RouterLink>
+                <RouterLink to="/loyalty" :class="getLinkClass('/loyalty')">Loyalty</RouterLink>
             </nav>
 
             <!-- Mobile Menu Button -->
@@ -102,6 +104,22 @@ const closeMobileMenu = () => {
                         @click="closeMobileMenu"
                     >
                         Statistics
+                    </RouterLink>
+                    <RouterLink
+                        to="/coupons"
+                        :class="getLinkClass('/coupons')"
+                        class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                        @click="closeMobileMenu"
+                    >
+                        Coupons
+                    </RouterLink>
+                    <RouterLink
+                        to="/loyalty"
+                        :class="getLinkClass('/loyalty')"
+                        class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                        @click="closeMobileMenu"
+                    >
+                        Loyalty
                     </RouterLink>
                 </div>
             </nav>
