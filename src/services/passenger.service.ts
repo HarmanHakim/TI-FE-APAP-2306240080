@@ -7,7 +7,7 @@ import type {
 } from '@/interfaces/passenger.interface';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://2306240080-be.hafizmuh.site/api';
 
 export class PassengerService {
   private static instance: PassengerService;

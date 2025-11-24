@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ti-2306240080-fe
+  labels:
+    app: ti-2306240080-fe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ti-2306240080-fe
+  template:
+    metadata:
+      labels:
+        app: ti-2306240080-fe
+    spec:
+      containers:
+        - name: ti-2306240080-fe
+          image: harmanhakim/flight-fe:REPLACE_ME_TAG
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

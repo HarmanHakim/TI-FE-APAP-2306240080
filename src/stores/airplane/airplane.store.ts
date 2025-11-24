@@ -102,6 +102,7 @@ export const useAirplaneStore = defineStore('airplane', {
         }
         toast.success('Airplane deactivated successfully');
       } catch (error) {
+        // @ts-expect-error
         this.error = error instanceof Error ? error.response.data.message : 'Unknown error';
 
         toast.error(`Error deactivating airplane: ${this.error}`);
