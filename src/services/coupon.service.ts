@@ -2,7 +2,7 @@ import type { CommonResponseInterface } from '@/interfaces/common.response.inter
 import type { CouponDto, CreateCouponDto, UpdateCouponDto } from '@/interfaces/loyalty.interface'
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://2306240080-be.hafizmuh.site/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 const COUPON_BASE_URL = `${API_BASE_URL}/coupons`
 
 export class CouponService {
