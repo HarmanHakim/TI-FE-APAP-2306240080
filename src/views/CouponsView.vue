@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useCouponStore } from '@/stores/coupon/coupon.store'
 import type { CouponDto } from '@/interfaces/loyalty.interface'
 import { toast } from 'vue-sonner'
@@ -14,6 +14,9 @@ const form = reactive({
   percentOff: 5
 })
 
+const searchQuery = ref('')
+const sortBy = ref<'name' | 'points' | 'percentOff' | 'createdDate'>('createdDate')
+
 const isEditing = computed(() => Boolean(form.id))
 
 const resetForm = () => {
@@ -24,6 +27,40 @@ const resetForm = () => {
   form.percentOff = 5
   couponStore.selectCoupon(null)
 }
+
+const filteredAndSortedCoupons = computed(() => {
+  let result = [...couponStore.coupons]
+
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(
+      (coupon) =>
+        coupon.name.toLowerCase().includes(query) ||
+        (coupon.description && coupon.description.toLowerCase().includes(query))
+    )
+  }
+
+  // Apply sorting
+  result.sort((a, b) => {
+    switch (sortBy.value) {
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'points':
+        return b.points - a.points // Descending
+      case 'percentOff':
+        return b.percentOff - a.percentOff // Descending
+      case 'createdDate':
+        if (!a.createdDate) return 1
+        if (!b.createdDate) return -1
+        return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime() // Newest first
+      default:
+        return 0
+    }
+  })
+
+  return result
+})
 
 const handleSubmit = async () => {
   if (!form.name) {
@@ -131,22 +168,45 @@ onMounted(() => {
       </form>
 
       <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <header class="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <div>
-            <h2 class="text-xl font-semibold text-gray-900">Existing Coupons</h2>
-            <p class="text-sm text-gray-500">{{ couponStore.coupons.length }} total coupons • {{ totalPointsValue }} pts
-              combined</p>
+        <header class="space-y-4 mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">Existing Coupons</h2>
+              <p class="text-sm text-gray-500">{{ filteredAndSortedCoupons.length }} of {{ couponStore.coupons.length }} coupons • {{ totalPointsValue }} pts
+                combined</p>
+            </div>
+            <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-500" :disabled="couponStore.loading"
+              @click="couponStore.fetchCoupons()">
+              Refresh
+            </button>
           </div>
-          <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-500" :disabled="couponStore.loading"
-            @click="couponStore.fetchCoupons()">
-            Refresh
-          </button>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search by name or description..."
+                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+            <div class="sm:w-48">
+              <select
+                v-model="sortBy"
+                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              >
+                <option value="createdDate">Sort by: Newest</option>
+                <option value="name">Sort by: Name</option>
+                <option value="points">Sort by: Points</option>
+                <option value="percentOff">Sort by: Discount</option>
+              </select>
+            </div>
+          </div>
         </header>
         <div v-if="couponStore.loading" class="py-8 text-center text-gray-500">
           Loading coupons...
         </div>
-        <div v-else-if="couponStore.coupons.length" class="space-y-4">
-          <article v-for="coupon in couponStore.coupons" :key="coupon.id"
+        <div v-else-if="filteredAndSortedCoupons.length" class="space-y-4">
+          <article v-for="coupon in filteredAndSortedCoupons" :key="coupon.id"
             class="border border-gray-100 rounded-lg p-4 hover:border-indigo-200 transition">
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -174,7 +234,8 @@ onMounted(() => {
             </div>
           </article>
         </div>
-        <p v-else class="text-sm text-gray-500">No coupons yet. Create your first coupon using the form.</p>
+        <p v-else-if="!couponStore.coupons.length" class="text-sm text-gray-500">No coupons yet. Create your first coupon using the form.</p>
+        <p v-else class="text-sm text-gray-500">No coupons match your search criteria. Try adjusting your filters.</p>
       </section>
     </section>
   </div>

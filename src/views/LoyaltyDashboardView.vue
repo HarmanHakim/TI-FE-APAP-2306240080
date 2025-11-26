@@ -7,6 +7,14 @@ const loyaltyStore = useLoyaltyStore()
 
 const customerIdInput = ref(loyaltyStore.customerId)
 
+// Search and filter state
+const availableCouponsSearch = ref('')
+const availableCouponsSortBy = ref<'name' | 'points' | 'percentOff'>('points')
+
+const purchasedCouponsSearch = ref('')
+const purchasedCouponsSortBy = ref<'purchasedDate' | 'percentOff' | 'name'>('purchasedDate')
+const purchasedCouponsFilter = ref<'all' | 'active' | 'redeemed'>('all')
+
 const addPointsForm = reactive({
   customerId: loyaltyStore.customerId,
   points: 100,
@@ -146,6 +154,79 @@ const formatDate = (value?: string | null) => {
     timeStyle: 'short'
   }).format(new Date(value))
 }
+
+// Filtered and sorted available coupons
+const filteredAndSortedAvailableCoupons = computed(() => {
+  let result = [...loyaltyStore.availableCoupons]
+
+  // Apply search filter
+  if (availableCouponsSearch.value.trim()) {
+    const query = availableCouponsSearch.value.toLowerCase()
+    result = result.filter(
+      (coupon) =>
+        coupon.name.toLowerCase().includes(query) ||
+        (coupon.description && coupon.description.toLowerCase().includes(query))
+    )
+  }
+
+  // Apply sorting
+  result.sort((a, b) => {
+    switch (availableCouponsSortBy.value) {
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'points':
+        return b.points - a.points // Descending (most expensive first)
+      case 'percentOff':
+        return b.percentOff - a.percentOff // Descending (highest discount first)
+      default:
+        return 0
+    }
+  })
+
+  return result
+})
+
+// Filtered and sorted purchased coupons
+const filteredAndSortedPurchasedCoupons = computed(() => {
+  let result = [...loyaltyStore.purchasedCoupons]
+
+  // Apply status filter
+  if (purchasedCouponsFilter.value === 'active') {
+    result = result.filter(coupon => !coupon.usedDate)
+  } else if (purchasedCouponsFilter.value === 'redeemed') {
+    result = result.filter(coupon => coupon.usedDate)
+  }
+
+  // Apply search filter
+  if (purchasedCouponsSearch.value.trim()) {
+    const query = purchasedCouponsSearch.value.toLowerCase()
+    result = result.filter(
+      (coupon) =>
+        (coupon.couponName && coupon.couponName.toLowerCase().includes(query)) ||
+        coupon.code.toLowerCase().includes(query)
+    )
+  }
+
+  // Apply sorting
+  result.sort((a, b) => {
+    switch (purchasedCouponsSortBy.value) {
+      case 'purchasedDate':
+        if (!a.purchasedDate) return 1
+        if (!b.purchasedDate) return -1
+        return new Date(b.purchasedDate).getTime() - new Date(a.purchasedDate).getTime() // Newest first
+      case 'percentOff':
+        return (b.percentOff ?? 0) - (a.percentOff ?? 0) // Descending
+      case 'name':
+        const nameA = a.couponName ?? a.code
+        const nameB = b.couponName ?? b.code
+        return nameA.localeCompare(nameB)
+      default:
+        return 0
+    }
+  })
+
+  return result
+})
 
 onMounted(() => {
   if (loyaltyStore.customerId) {
@@ -290,15 +371,36 @@ syncCustomerId(loyaltyStore.customerId)
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <header class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-semibold text-gray-900">Available Coupons</h2>
-              <p class="text-sm text-gray-500">Choose an offer to instantly purchase</p>
+          <header class="space-y-4 mb-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Available Coupons</h2>
+                <p class="text-sm text-gray-500">{{ filteredAndSortedAvailableCoupons.length }} of {{ loyaltyStore.availableCoupons.length }} offers</p>
+              </div>
             </div>
-            <span class="text-sm font-semibold text-indigo-600">{{ loyaltyStore.availableCoupons.length }} offers</span>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="flex-1">
+                <input
+                  v-model="availableCouponsSearch"
+                  type="text"
+                  placeholder="Search available coupons..."
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+              <div class="sm:w-48">
+                <select
+                  v-model="availableCouponsSortBy"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                >
+                  <option value="points">Sort by: Points</option>
+                  <option value="percentOff">Sort by: Discount</option>
+                  <option value="name">Sort by: Name</option>
+                </select>
+              </div>
+            </div>
           </header>
-          <div v-if="loyaltyStore.availableCoupons.length" class="space-y-4 max-h-[420px] overflow-y-auto pr-2">
-            <article v-for="coupon in loyaltyStore.availableCoupons" :key="coupon.id"
+          <div v-if="filteredAndSortedAvailableCoupons.length" class="space-y-4 max-h-[420px] overflow-y-auto pr-2">
+            <article v-for="coupon in filteredAndSortedAvailableCoupons" :key="coupon.id"
               class="border border-gray-100 rounded-lg p-4 hover:border-indigo-200 transition">
               <div class="flex items-start justify-between gap-4">
                 <div>
@@ -318,19 +420,51 @@ syncCustomerId(loyaltyStore.customerId)
               </button>
             </article>
           </div>
-          <p v-else class="text-sm text-gray-500">No coupons available. Create one from the Coupons section.</p>
+          <p v-else-if="!loyaltyStore.availableCoupons.length" class="text-sm text-gray-500">No coupons available. Create one from the Coupons section.</p>
+          <p v-else class="text-sm text-gray-500">No coupons match your search criteria.</p>
         </section>
 
         <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <header class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-semibold text-gray-900">Purchased Coupons</h2>
-              <p class="text-sm text-gray-500">Latest purchases for this customer</p>
+          <header class="space-y-4 mb-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Purchased Coupons</h2>
+                <p class="text-sm text-gray-500">{{ filteredAndSortedPurchasedCoupons.length }} of {{ loyaltyStore.purchasedCoupons.length }} entries</p>
+              </div>
             </div>
-            <span class="text-sm font-semibold text-gray-500">{{ loyaltyStore.purchasedCoupons.length }} entries</span>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="flex-1">
+                <input
+                  v-model="purchasedCouponsSearch"
+                  type="text"
+                  placeholder="Search purchased coupons..."
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+              <div class="sm:w-48">
+                <select
+                  v-model="purchasedCouponsFilter"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                >
+                  <option value="all">All Coupons</option>
+                  <option value="active">Active Only</option>
+                  <option value="redeemed">Redeemed Only</option>
+                </select>
+              </div>
+              <div class="sm:w-48">
+                <select
+                  v-model="purchasedCouponsSortBy"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                >
+                  <option value="purchasedDate">Sort by: Newest</option>
+                  <option value="percentOff">Sort by: Discount</option>
+                  <option value="name">Sort by: Name</option>
+                </select>
+              </div>
+            </div>
           </header>
-          <div v-if="loyaltyStore.purchasedCoupons.length" class="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-            <article v-for="coupon in loyaltyStore.purchasedCoupons" :key="coupon.id"
+          <div v-if="filteredAndSortedPurchasedCoupons.length" class="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+            <article v-for="coupon in filteredAndSortedPurchasedCoupons" :key="coupon.id"
               class="border border-gray-100 rounded-lg p-4">
               <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -354,7 +488,8 @@ syncCustomerId(loyaltyStore.customerId)
               </div>
             </article>
           </div>
-          <p v-else class="text-sm text-gray-500">No coupons purchased yet for this customer.</p>
+          <p v-else-if="!loyaltyStore.purchasedCoupons.length" class="text-sm text-gray-500">No coupons purchased yet for this customer.</p>
+          <p v-else class="text-sm text-gray-500">No coupons match your search or filter criteria.</p>
         </section>
       </div>
 
