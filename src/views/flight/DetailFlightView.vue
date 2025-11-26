@@ -196,11 +196,8 @@ onMounted(async () => {
         <div v-if="flight.facilities" class="mt-6">
           <p class="text-sm text-gray-600 mb-2">Facilities</p>
           <div class="flex flex-wrap gap-2">
-            <span
-              v-for="(facility, index) in flight.facilities.split(',')"
-              :key="index"
-              class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-            >
+            <span v-for="(facility, index) in flight.facilities.split(',')" :key="index"
+              class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
               {{ facility.trim() }}
             </span>
           </div>
@@ -211,17 +208,12 @@ onMounted(async () => {
       <div class="bg-white p-6 rounded-lg shadow">
         <h3 class="text-xl font-semibold mb-4">Available Classes</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div
-            v-for="cls in flight.classes"
-            :key="cls.id"
-            class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all"
-          >
+          <div v-for="cls in flight.classes" :key="cls.id"
+            class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all">
             <div class="flex justify-between items-start mb-3">
               <h4 class="font-semibold text-gray-900">{{ cls.classType }}</h4>
-              <span
-                class="px-2 py-1 text-xs rounded-full"
-                :class="cls.availableSeats > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-              >
+              <span class="px-2 py-1 text-xs rounded-full"
+                :class="cls.availableSeats > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                 {{ cls.availableSeats > 0 ? 'Available' : 'Full' }}
               </span>
             </div>
@@ -233,7 +225,7 @@ onMounted(async () => {
               <div class="flex justify-between items-center">
                 <span class="text-gray-600">Price:</span>
                 <span class="text-lg font-bold text-green-600">
-                  ${{ cls.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                  IDR {{ cls.price.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
                 </span>
               </div>
             </div>
@@ -243,10 +235,8 @@ onMounted(async () => {
 
       <!-- Expandable: Seats -->
       <div class="bg-white rounded-lg shadow">
-        <button
-          @click="toggleSeats"
-          class="w-full px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
-        >
+        <button @click="toggleSeats"
+          class="w-full px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
           <div class="flex items-center gap-3">
             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -254,13 +244,8 @@ onMounted(async () => {
             </svg>
             <h3 class="text-xl font-semibold">Seat Map</h3>
           </div>
-          <svg
-            class="w-6 h-6 transition-transform"
-            :class="{ 'rotate-180': showSeats }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-6 h-6 transition-transform" :class="{ 'rotate-180': showSeats }" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -277,9 +262,11 @@ onMounted(async () => {
               <div class="border border-gray-300 rounded-lg p-6 bg-linear-to-b from-blue-50 to-white max-w-2xl mx-auto">
                 <!-- Cockpit -->
                 <div class="text-center mb-6">
-                  <div class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-t-full text-sm font-semibold shadow-md">
+                  <div
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-t-full text-sm font-semibold shadow-md">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 10l7-7m0 0l7 7m-7-7v18" />
                     </svg>
                     COCKPIT
                   </div>
@@ -287,7 +274,8 @@ onMounted(async () => {
 
                 <!-- Airplane Seat Layout -->
                 <div class="space-y-2">
-                  <div v-for="row in groupSeatsByRow(seats.filter(s => s.classFlightId === cls.id))" :key="row.rowNum" class="flex items-center gap-2">
+                  <div v-for="row in groupSeatsByRow(seats.filter(s => s.classFlightId === cls.id))" :key="row.rowNum"
+                    class="flex items-center gap-2">
                     <!-- Row Number (Left) -->
                     <div class="w-8 text-center text-xs font-bold text-gray-500">
                       {{ row.rowNum }}
@@ -297,18 +285,14 @@ onMounted(async () => {
                     <div class="flex-1 flex items-center gap-2">
                       <!-- Left Side Seats (A, B) -->
                       <div class="flex gap-2 flex-1 justify-end">
-                        <div
-                          v-for="seat in row.seats.filter(s => s.seatNumber.match(/[AB]$/))"
-                          :key="seat.id"
-                          :class="[
-                            'p-3 rounded-lg text-xs font-bold transition-all',
-                            'border-2 flex flex-col items-center justify-center w-12 h-14',
-                            seat.isAvailable
-                              ? 'bg-green-100 text-green-800 border-green-400'
-                              : 'bg-red-100 text-red-800 border-red-400'
-                          ]"
-                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`"
-                        >
+                        <div v-for="seat in row.seats.filter(s => s.seatNumber.match(/[AB]$/))" :key="seat.id" :class="[
+                          'p-3 rounded-lg text-xs font-bold transition-all',
+                          'border-2 flex flex-col items-center justify-center w-12 h-14',
+                          seat.isAvailable
+                            ? 'bg-green-100 text-green-800 border-green-400'
+                            : 'bg-red-100 text-red-800 border-red-400'
+                        ]"
+                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
                           <!-- Seat Icon -->
                           <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -319,26 +303,24 @@ onMounted(async () => {
                       </div>
 
                       <!-- Aisle -->
-                      <div class="w-8 border-l-2 border-r-2 border-dashed border-gray-300 h-14 flex items-center justify-center">
+                      <div
+                        class="w-8 border-l-2 border-r-2 border-dashed border-gray-300 h-14 flex items-center justify-center">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m0 0l-4-4m4 4l4-4" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 5v14m0 0l-4-4m4 4l4-4" />
                         </svg>
                       </div>
 
                       <!-- Right Side Seats (C, D) -->
                       <div class="flex gap-2 flex-1">
-                        <div
-                          v-for="seat in row.seats.filter(s => s.seatNumber.match(/[CD]$/))"
-                          :key="seat.id"
-                          :class="[
-                            'p-3 rounded-lg text-xs font-bold transition-all',
-                            'border-2 flex flex-col items-center justify-center w-12 h-14',
-                            seat.isAvailable
-                              ? 'bg-green-100 text-green-800 border-green-400'
-                              : 'bg-red-100 text-red-800 border-red-400'
-                          ]"
-                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`"
-                        >
+                        <div v-for="seat in row.seats.filter(s => s.seatNumber.match(/[CD]$/))" :key="seat.id" :class="[
+                          'p-3 rounded-lg text-xs font-bold transition-all',
+                          'border-2 flex flex-col items-center justify-center w-12 h-14',
+                          seat.isAvailable
+                            ? 'bg-green-100 text-green-800 border-green-400'
+                            : 'bg-red-100 text-red-800 border-red-400'
+                        ]"
+                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
                           <!-- Seat Icon -->
                           <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -359,7 +341,8 @@ onMounted(async () => {
                 <!-- Legend -->
                 <div class="mt-6 flex flex-wrap justify-center gap-6 text-sm pt-6 border-t border-gray-300">
                   <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-green-100 border-2 border-green-400 rounded-lg flex items-center justify-center">
+                    <div
+                      class="w-10 h-10 bg-green-100 border-2 border-green-400 rounded-lg flex items-center justify-center">
                       <svg class="w-5 h-5 text-green-800" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
@@ -368,7 +351,8 @@ onMounted(async () => {
                     <span class="text-gray-700 font-medium">Available</span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-red-100 border-2 border-red-400 rounded-lg flex items-center justify-center">
+                    <div
+                      class="w-10 h-10 bg-red-100 border-2 border-red-400 rounded-lg flex items-center justify-center">
                       <svg class="w-5 h-5 text-red-800" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         <path d="M4 10h12v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4z" />
@@ -385,10 +369,8 @@ onMounted(async () => {
 
       <!-- Expandable: Bookings -->
       <div class="bg-white rounded-lg shadow">
-        <button
-          @click="toggleBookings"
-          class="w-full px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
-        >
+        <button @click="toggleBookings"
+          class="w-full px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
           <div class="flex items-center gap-3">
             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -396,13 +378,8 @@ onMounted(async () => {
             </svg>
             <h3 class="text-xl font-semibold">Bookings & Passengers</h3>
           </div>
-          <svg
-            class="w-6 h-6 transition-transform"
-            :class="{ 'rotate-180': showBookings }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-6 h-6 transition-transform" :class="{ 'rotate-180': showBookings }" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -435,22 +412,17 @@ onMounted(async () => {
                     {{ booking.passengerCount }} passenger(s)
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap text-sm">
-                    <span class="px-2 py-1 rounded-full text-xs"
-                      :class="{
-                        'bg-yellow-100 text-yellow-800': booking.status === 1,
-                        'bg-green-100 text-green-800': booking.status === 2,
-                        'bg-red-100 text-red-800': booking.status === 3,
-                        'bg-blue-100 text-blue-800': booking.status === 4
-                      }"
-                    >
+                    <span class="px-2 py-1 rounded-full text-xs" :class="{
+                      'bg-yellow-100 text-yellow-800': booking.status === 1,
+                      'bg-green-100 text-green-800': booking.status === 2,
+                      'bg-red-100 text-red-800': booking.status === 3,
+                      'bg-blue-100 text-blue-800': booking.status === 4
+                    }">
                       {{ booking.statusLabel }}
                     </span>
                   </td>
                   <td class="px-4 py-3 whitespace-nowrap text-sm">
-                    <button
-                      @click="router.push(`/bookings/${booking.id}`)"
-                      class="text-blue-600 hover:text-blue-800"
-                    >
+                    <button @click="router.push(`/bookings/${booking.id}`)" class="text-blue-600 hover:text-blue-800">
                       View Details
                     </button>
                   </td>
@@ -463,10 +435,8 @@ onMounted(async () => {
 
       <!-- Actions -->
       <div class="bg-white p-6 rounded-lg shadow flex flex-wrap gap-4">
-        <button
-          @click="router.push(`/bookings/add?flightId=${flight.id}`)"
-          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-        >
+        <button @click="router.push(`/bookings/add?flightId=${flight.id}`)"
+          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
@@ -474,11 +444,9 @@ onMounted(async () => {
           Book This Flight
         </button>
 
-        <button
-          v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted"
+        <button v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted"
           @click="router.push(`/flights/${flight.id}/edit`)"
-          class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center gap-2"
-        >
+          class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -486,11 +454,8 @@ onMounted(async () => {
           Edit Flight
         </button>
 
-        <button
-          v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted"
-          @click="handleCancelFlight"
-          class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-        >
+        <button v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted" @click="handleCancelFlight"
+          class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

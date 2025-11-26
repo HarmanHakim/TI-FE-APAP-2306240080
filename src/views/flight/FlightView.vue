@@ -569,7 +569,8 @@ const handleDeleteFlight = async (flightId: string) => {
                   <div class="flex justify-between items-center">
                     <span class="text-gray-600">Price:</span>
                     <span class="text-lg font-bold text-green-600">
-                      ${{ cls.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                      IDR {{ cls.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      }}
                     </span>
                   </div>
                 </div>

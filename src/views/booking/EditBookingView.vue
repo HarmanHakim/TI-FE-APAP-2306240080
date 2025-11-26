@@ -419,7 +419,9 @@ onMounted(() => {
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Price per Seat</label>
-            <p class="px-4 py-2 bg-gray-100 rounded-lg text-gray-800">${{ classInfo?.price.toFixed(2) }}</p>
+            <p class="px-4 py-2 bg-gray-100 rounded-lg text-gray-800">IDR {{ classInfo?.price.toLocaleString('id-ID', {
+              minimumFractionDigits: 0, maximumFractionDigits: 0
+}) || '0' }}</p>
           </div>
         </div>
         <p class="text-xs text-gray-500 mt-3">
@@ -674,7 +676,10 @@ onMounted(() => {
           </div>
           <div class="flex justify-between text-gray-700">
             <span>Price per passenger:</span>
-            <span class="font-medium">${{ classInfo?.price.toFixed(2) || '0.00' }}</span>
+            <span class="font-medium">IDR {{ classInfo?.price.toLocaleString('id-ID', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+}) || '0' }}</span>
           </div>
           <div class="flex justify-between text-gray-700">
             <span>Number of passengers:</span>
@@ -682,7 +687,9 @@ onMounted(() => {
           </div>
           <div class="border-t pt-2 mt-2 flex justify-between text-lg font-bold">
             <span>Total Price:</span>
-            <span class="text-green-600">${{ totalPrice.toFixed(2) }}</span>
+            <span class="text-green-600">IDR {{ totalPrice.toLocaleString('id-ID', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0 }) }}</span>
           </div>
         </div>
       </div>

@@ -301,7 +301,8 @@ const handleCancelBooking = async (bookingId: string) => {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ booking.passengerCount }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-              ${{ booking.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+              IDR {{ booking.totalPrice.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+              }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
               <span :class="getStatusColor(booking.status)" class="font-medium">{{ booking.statusLabel }}</span>

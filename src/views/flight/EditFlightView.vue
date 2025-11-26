@@ -412,7 +412,8 @@ const handleSubmit = async () => {
               <!-- Seat Capacity -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Seat Capacity *</label>
-                <input v-model.number="cls.seatCapacity" type="number" required min="1" @input="adjustAvailableSeats(cls)"
+                <input v-model.number="cls.seatCapacity" type="number" required min="1"
+                  @input="adjustAvailableSeats(cls)"
                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
 
@@ -429,7 +430,7 @@ const handleSubmit = async () => {
 
               <!-- Price -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Price (USD) *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Price (IDR) *</label>
                 <input v-model.number="cls.price" type="number" required min="0" step="0.01"
                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>

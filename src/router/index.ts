@@ -16,6 +16,7 @@ import EditFlightView from '@/views/flight/EditFlightView.vue'
 import FlightView from '@/views/flight/FlightView.vue'
 import CouponsView from '@/views/CouponsView.vue'
 import LoyaltyDashboardView from '@/views/LoyaltyDashboardView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -110,6 +111,11 @@ const router = createRouter({
       path: '/statistics',
       name: 'statistics',
       component: StatisticsView,
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFoundView,
     },
   ],
 })

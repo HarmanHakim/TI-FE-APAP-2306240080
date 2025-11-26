@@ -446,7 +446,9 @@ onMounted(async () => {
               <option :value="null">Select Class</option>
               <option v-for="cls in departureFlight?.classes" :key="cls.id" :value="cls.id"
                 :disabled="cls.availableSeats === 0">
-                {{ cls.classType }} - ${{ cls.price.toFixed(2) }}
+                {{ cls.classType }} - IDR {{ cls.price.toLocaleString('id-ID', {
+                  minimumFractionDigits: 0,
+                maximumFractionDigits: 0 }) }}
                 ({{ cls.availableSeats }} seats available)
               </option>
             </select>
@@ -497,7 +499,9 @@ onMounted(async () => {
               <option :value="null">Select Class</option>
               <option v-for="cls in returnFlight?.classes" :key="cls.id" :value="cls.id"
                 :disabled="cls.availableSeats === 0">
-                {{ cls.classType }} - ${{ cls.price.toFixed(2) }}
+                {{ cls.classType }} - IDR {{ cls.price.toLocaleString('id-ID', {
+                  minimumFractionDigits: 0,
+                maximumFractionDigits: 0 }) }}
                 ({{ cls.availableSeats }} seats available)
               </option>
             </select>
@@ -928,7 +932,9 @@ onMounted(async () => {
               </div>
               <div class="flex justify-between text-gray-700">
                 <span>Price per passenger:</span>
-                <span class="font-medium">${{ departureClass?.price.toFixed(2) || '0.00' }}</span>
+                <span class="font-medium">IDR {{ departureClass?.price.toLocaleString('id-ID', {
+                  minimumFractionDigits:
+                    0, maximumFractionDigits: 0 }) || '0' }}</span>
               </div>
               <div class="flex justify-between text-gray-700">
                 <span>Passengers:</span>
@@ -936,7 +942,9 @@ onMounted(async () => {
               </div>
               <div class="flex justify-between text-gray-700 font-semibold">
                 <span>Subtotal:</span>
-                <span class="text-blue-600">${{ ((departureClass?.price || 0) * passengers.length).toFixed(2) }}</span>
+                <span class="text-blue-600">IDR {{ ((departureClass?.price || 0) *
+                  passengers.length).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                  }}</span>
               </div>
             </div>
           </div>
@@ -951,7 +959,9 @@ onMounted(async () => {
               </div>
               <div class="flex justify-between text-gray-700">
                 <span>Price per passenger:</span>
-                <span class="font-medium">${{ returnClass.price.toFixed(2) }}</span>
+                <span class="font-medium">IDR {{ returnClass.price.toLocaleString('id-ID', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0 }) }}</span>
               </div>
               <div class="flex justify-between text-gray-700">
                 <span>Passengers:</span>
@@ -959,7 +969,8 @@ onMounted(async () => {
               </div>
               <div class="flex justify-between text-gray-700 font-semibold">
                 <span>Subtotal:</span>
-                <span class="text-green-600">${{ (returnClass.price * passengers.length).toFixed(2) }}</span>
+                <span class="text-green-600">IDR {{ (returnClass.price * passengers.length).toLocaleString('id-ID', {
+                  minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</span>
               </div>
             </div>
           </div>
@@ -967,7 +978,9 @@ onMounted(async () => {
           <!-- Total -->
           <div class="pt-2 flex justify-between text-lg font-bold">
             <span>Total Price:</span>
-            <span class="text-green-600">${{ totalPrice.toFixed(2) }}</span>
+            <span class="text-green-600">IDR {{ totalPrice.toLocaleString('id-ID', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0 }) }}</span>
           </div>
         </div>
       </div>
