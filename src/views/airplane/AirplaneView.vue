@@ -15,6 +15,7 @@ const filterAirlineId = ref<string>('')
 const filterModel = ref<string>('')
 const filterManufactureYear = ref<number | undefined>(undefined)
 const universalSearch = ref<string>('')
+const sortBy = ref<string>('model-asc')
 
 onMounted(async () => {
   await airplaneStore.fetchAllAirplanes()
@@ -65,6 +66,27 @@ const filteredAirplanes = computed(() => {
 
     return true
   })
+})
+
+const sortedAirplanes = computed(() => {
+  const filtered = [...filteredAirplanes.value]
+  
+  switch (sortBy.value) {
+    case 'model-asc':
+      return filtered.sort((a, b) => a.model.localeCompare(b.model))
+    case 'model-desc':
+      return filtered.sort((a, b) => b.model.localeCompare(a.model))
+    case 'year-newest':
+      return filtered.sort((a, b) => b.manufactureYear - a.manufactureYear)
+    case 'year-oldest':
+      return filtered.sort((a, b) => a.manufactureYear - b.manufactureYear)
+    case 'capacity-high':
+      return filtered.sort((a, b) => b.seatCapacity - a.seatCapacity)
+    case 'capacity-low':
+      return filtered.sort((a, b) => a.seatCapacity - b.seatCapacity)
+    default:
+      return filtered
+  }
 })
 
 const clearFilters = () => {
@@ -167,8 +189,20 @@ const handleActivate = async (id: string) => {
         </div>
       </div>
 
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-2">Sort By</label>
+        <select v-model="sortBy" class="w-full px-4 py-2 border rounded-lg">
+          <option value="model-asc">Model (A-Z)</option>
+          <option value="model-desc">Model (Z-A)</option>
+          <option value="year-newest">Year (Newest First)</option>
+          <option value="year-oldest">Year (Oldest First)</option>
+          <option value="capacity-high">Capacity (High to Low)</option>
+          <option value="capacity-low">Capacity (Low to High)</option>
+        </select>
+      </div>
+
       <div class="mt-4 text-sm text-gray-600">
-        Showing {{ filteredAirplanes.length }} of {{ airplaneStore.airplanes.length }} airplanes
+        Showing {{ sortedAirplanes.length }} of {{ airplaneStore.airplanes.length }} airplanes
       </div>
     </div>
 
@@ -186,7 +220,7 @@ const handleActivate = async (id: string) => {
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-if="filteredAirplanes.length === 0">
+          <tr v-if="sortedAirplanes.length === 0">
             <td colspan="7" class="px-6 py-8 text-center text-gray-500">
               <div class="flex flex-col items-center">
                 <svg class="w-12 h-12 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +232,7 @@ const handleActivate = async (id: string) => {
               </div>
             </td>
           </tr>
-          <tr v-for="airplane in filteredAirplanes" :key="airplane.id">
+          <tr v-for="airplane in sortedAirplanes" :key="airplane.id">
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airplane.id }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airplane.model }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airplane.airlineName }}</td>

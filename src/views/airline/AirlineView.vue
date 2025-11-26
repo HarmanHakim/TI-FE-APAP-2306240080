@@ -11,6 +11,7 @@ const airlineStore = useAirlineStore()
 const filterCountry = ref<string>('')
 const filterName = ref<string>('')
 const universalSearch = ref<string>('')
+const sortBy = ref<string>('name-asc')
 
 onMounted(async () => {
   await airlineStore.fetchAllAirlines()
@@ -48,6 +49,23 @@ const filteredAirlines = computed(() => {
 
     return true
   })
+})
+
+const sortedAirlines = computed(() => {
+  const filtered = [...filteredAirlines.value]
+  
+  switch (sortBy.value) {
+    case 'name-asc':
+      return filtered.sort((a, b) => a.name.localeCompare(b.name))
+    case 'name-desc':
+      return filtered.sort((a, b) => b.name.localeCompare(a.name))
+    case 'country-asc':
+      return filtered.sort((a, b) => a.country.localeCompare(b.country))
+    case 'country-desc':
+      return filtered.sort((a, b) => b.country.localeCompare(a.country))
+    default:
+      return filtered
+  }
 })
 
 const clearFilters = () => {
@@ -123,8 +141,18 @@ const handleDelete = async (id: string) => {
         </div>
       </div>
 
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-2">Sort By</label>
+        <select v-model="sortBy" class="w-full px-4 py-2 border rounded-lg">
+          <option value="name-asc">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+          <option value="country-asc">Country (A-Z)</option>
+          <option value="country-desc">Country (Z-A)</option>
+        </select>
+      </div>
+
       <div class="mt-4 text-sm text-gray-600">
-        Showing {{ filteredAirlines.length }} of {{ airlineStore.airlines.length }} airlines
+        Showing {{ sortedAirlines.length }} of {{ airlineStore.airlines.length }} airlines
       </div>
     </div>
 
@@ -139,7 +167,7 @@ const handleDelete = async (id: string) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr v-if="filteredAirlines.length === 0">
+          <tr v-if="sortedAirlines.length === 0">
             <td colspan="4" class="px-6 py-8 text-center text-gray-500">
               <div class="flex flex-col items-center">
                 <svg class="w-12 h-12 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +179,7 @@ const handleDelete = async (id: string) => {
               </div>
             </td>
           </tr>
-          <tr v-for="airline in filteredAirlines" :key="airline.id">
+          <tr v-for="airline in sortedAirlines" :key="airline.id">
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airline.id }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airline.name }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ airline.country }}</td>

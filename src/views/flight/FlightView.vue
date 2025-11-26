@@ -16,6 +16,7 @@ const universalSearch = ref('')
 const filterAirlineId = ref<string>('')
 const filterStatus = ref<number | undefined>(undefined)
 const showInactive = ref(true)
+const sortBy = ref<string>('departure-soonest')
 
 // Accordion state
 const expandedFlights = ref<Set<string>>(new Set())
@@ -58,6 +59,17 @@ const selectFlightForBooking = (flightId: string) => {
       toast.error('Please select a different flight for return.')
     }
   }
+}
+
+const deselectDepartureFlight = () => {
+  selectedDepartureFlight.value = null
+  selectedReturnFlight.value = null
+  toast.info('Departure flight deselected')
+}
+
+const deselectReturnFlight = () => {
+  selectedReturnFlight.value = null
+  toast.info('Return flight deselected')
 }
 
 const getBookingButtonText = (flightId: string) => {
@@ -141,6 +153,43 @@ const filteredFlights = computed(() => {
   })
 })
 
+const sortedFlights = computed(() => {
+  let filtered = [...filteredFlights.value]
+
+  // If in two-way mode and departure flight is selected, filter for return flights
+  if (bookingMode.value === 'two-way' && selectedDepartureFlight.value && !selectedReturnFlight.value) {
+    const departureFlight = flightStore.flights.find(f => f.id === selectedDepartureFlight.value)
+    if (departureFlight) {
+      // Only show flights that go from destination back to origin (reverse route)
+      filtered = filtered.filter(f =>
+        f.originAirportCode === departureFlight.destinationAirportCode &&
+        f.destinationAirportCode === departureFlight.originAirportCode
+      )
+    }
+  }
+
+  switch (sortBy.value) {
+    case 'departure-soonest':
+      return filtered.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime())
+    case 'departure-latest':
+      return filtered.sort((a, b) => new Date(b.departureTime).getTime() - new Date(a.departureTime).getTime())
+    case 'route-asc':
+      return filtered.sort((a, b) => {
+        const routeA = `${a.originAirportCode}-${a.destinationAirportCode}`
+        const routeB = `${b.originAirportCode}-${b.destinationAirportCode}`
+        return routeA.localeCompare(routeB)
+      })
+    case 'route-desc':
+      return filtered.sort((a, b) => {
+        const routeA = `${a.originAirportCode}-${a.destinationAirportCode}`
+        const routeB = `${b.originAirportCode}-${b.destinationAirportCode}`
+        return routeB.localeCompare(routeA)
+      })
+    default:
+      return filtered
+  }
+})
+
 const clearFilters = () => {
   searchOrigin.value = ''
   searchDestination.value = ''
@@ -207,12 +256,20 @@ const handleDeleteFlight = async (flightId: string) => {
             <span :class="selectedDepartureFlight ? 'text-green-600 font-semibold' : 'text-gray-400'">
               {{ selectedDepartureFlight || 'Not selected' }}
             </span>
+            <button v-if="selectedDepartureFlight" @click="deselectDepartureFlight"
+              class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200">
+              Deselect
+            </button>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-600">Return:</span>
             <span :class="selectedReturnFlight ? 'text-green-600 font-semibold' : 'text-gray-400'">
               {{ selectedReturnFlight || 'Not selected' }}
             </span>
+            <button v-if="selectedReturnFlight" @click="deselectReturnFlight"
+              class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200">
+              Deselect
+            </button>
           </div>
           <button v-if="selectedDepartureFlight && selectedReturnFlight" @click="proceedToTwoWayBooking"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
@@ -292,15 +349,25 @@ const handleDeleteFlight = async (flightId: string) => {
         </label>
       </div>
 
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-2">Sort By</label>
+        <select v-model="sortBy" class="w-full px-4 py-2 border rounded-lg">
+          <option value="departure-soonest">Departure Time (Soonest First)</option>
+          <option value="departure-latest">Departure Time (Latest First)</option>
+          <option value="route-asc">Route (A-Z)</option>
+          <option value="route-desc">Route (Z-A)</option>
+        </select>
+      </div>
+
       <div class="mt-4 text-sm text-gray-600">
-        Showing {{ filteredFlights.length }} of {{ flightStore.flights.length }} flights
+        Showing {{ sortedFlights.length }} of {{ flightStore.flights.length }} flights
       </div>
     </div>
 
     <!-- Accordion Flight List -->
     <div class="space-y-3">
       <!-- Empty State -->
-      <div v-if="filteredFlights.length === 0" class="bg-white rounded-lg shadow p-12 text-center">
+      <div v-if="sortedFlights.length === 0" class="bg-white rounded-lg shadow p-12 text-center">
         <div class="flex flex-col items-center">
           <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -312,7 +379,7 @@ const handleDeleteFlight = async (flightId: string) => {
       </div>
 
       <!-- Flight Accordion Items -->
-      <div v-for="flight in filteredFlights" :key="flight.id" class="bg-white rounded-lg shadow overflow-hidden">
+      <div v-for="flight in sortedFlights" :key="flight.id" class="bg-white rounded-lg shadow overflow-hidden">
         <!-- Flight Header (Always Visible) -->
         <div class="p-4 cursor-pointer hover:bg-gray-50 transition-colors" :class="{
           'bg-blue-50 border-2 border-blue-400': bookingMode === 'two-way' && (selectedDepartureFlight === flight.id || selectedReturnFlight === flight.id)
@@ -540,13 +607,12 @@ const handleDeleteFlight = async (flightId: string) => {
               </svg>
               Cancel Flight
             </button>
-            <button @click.stop="selectFlightForBooking(flight.id)"
-              :class="[
-                'px-4 py-2 rounded-lg transition-colors flex items-center',
-                (selectedDepartureFlight === flight.id || selectedReturnFlight === flight.id)
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              ]">
+            <button @click.stop="selectFlightForBooking(flight.id)" :class="[
+              'px-4 py-2 rounded-lg transition-colors flex items-center',
+              (selectedDepartureFlight === flight.id || selectedReturnFlight === flight.id)
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            ]">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />

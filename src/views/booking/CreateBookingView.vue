@@ -76,6 +76,29 @@ const totalPrice = computed(() => {
   return total
 })
 
+const filteredReturnFlights = computed(() => {
+  if (!isRoundTrip.value || !departureFlight.value) {
+    return flightStore.flights
+  }
+
+  const depFlight = departureFlight.value
+
+  return flightStore.flights.filter(f => {
+    // Must be reverse route: if departure is SUB->JKT, return must be JKT->SUB
+    const isReverseRoute =
+      f.originAirportCode === depFlight.destinationAirportCode &&
+      f.destinationAirportCode === depFlight.originAirportCode
+
+    // Must depart after outbound flight arrives
+    const departsAfter = new Date(f.departureTime) > new Date(depFlight.arrivalTime)
+
+    // Must not be deleted
+    const notDeleted = !f.isDeleted
+
+    return isReverseRoute && departsAfter && notDeleted
+  })
+})
+
 const loadDepartureSeats = async () => {
   if (!departureClassFlightId.value) {
     departureSeats.value = []
@@ -417,7 +440,8 @@ onMounted(async () => {
           <!-- Departure Class -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Class *</label>
-            <select v-model="departureClassFlightId" @change="loadDepartureSeats" required :disabled="!departureFlightId"
+            <select v-model="departureClassFlightId" @change="loadDepartureSeats" required
+              :disabled="!departureFlightId"
               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
               <option :value="null">Select Class</option>
               <option v-for="cls in departureFlight?.classes" :key="cls.id" :value="cls.id"
@@ -452,11 +476,17 @@ onMounted(async () => {
             <select v-model="returnFlightId" required
               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
               <option value="">Select Flight</option>
-              <option v-for="flight in flightStore.flights" :key="flight.id" :value="flight.id">
+              <option v-for="flight in filteredReturnFlights" :key="flight.id" :value="flight.id">
                 {{ flight.id }} - {{ flight.originAirportCode }} → {{ flight.destinationAirportCode }}
                 ({{ new Date(flight.departureTime).toLocaleDateString() }})
               </option>
             </select>
+            <p v-if="isRoundTrip && departureFlight && filteredReturnFlights.length === 0"
+              class="mt-2 text-sm text-orange-600">
+              ⚠️ No return flights available for the reverse route ({{ departureFlight.destinationAirportCode }} → {{
+                departureFlight.originAirportCode }}) departing after {{ new
+                Date(departureFlight.arrivalTime).toLocaleString() }}
+            </p>
           </div>
 
           <!-- Return Class -->
@@ -646,7 +676,8 @@ onMounted(async () => {
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-500'
               ]">
-                Passenger {{ index + 1 }}: {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId, 'departure') : 'Not selected' }}
+                Passenger {{ index + 1 }}: {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId,
+                  'departure') : 'Not selected' }}
               </div>
             </div>
           </div>
@@ -794,7 +825,8 @@ onMounted(async () => {
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-200 text-gray-500'
               ]">
-                Passenger {{ index + 1 }}: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') : 'Not selected' }}
+                Passenger {{ index + 1 }}: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') :
+                  'Not selected' }}
               </div>
             </div>
           </div>
@@ -832,15 +864,16 @@ onMounted(async () => {
                   ? 'bg-blue-100 text-blue-800'
                   : 'bg-red-100 text-red-800'
               ]">
-                Departure: {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId, 'departure') : 'No seat' }}
+                Departure:
+                {{ passenger.departureSeatId ? getSeatLabel(passenger.departureSeatId, 'departure') : "No Seat" }}
               </span>
               <span v-if="isRoundTrip" :class="[
-                'px-2 py-1 rounded text-xs font-semibold',
+                'px-2 py-1 rounded text-xsP font-semibold',
                 passenger.returnSeatId
                   ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
               ]">
-                Return: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') : 'No seat' }}
+                Return: {{ passenger.returnSeatId ? getSeatLabel(passenger.returnSeatId, 'return') : "No Seat" }}
               </span>
             </div>
 
