@@ -19,4 +19,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    host: true, // Allow external connections (needed for Docker)
+    port: 5173,
+  },
 })

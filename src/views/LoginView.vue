@@ -1,122 +1,134 @@
-<script setup lang="ts">
-import { ref } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
-
-const username = ref('');
-const password = ref('');
-const error = ref('');
-const authStore = useAuthStore();
-const router = useRouter();
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://2306240080-be.hafizmuh.site/api';
-
-const handleLogin = async () => {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      username: username.value,
-      password: password.value
-    });
-
-    if (response.data && response.data.token) {
-      authStore.setToken(response.data.token);
-      router.push('/');
-    } else {
-      error.value = 'Login failed: No token received';
-    }
-  } catch (err: any) {
-    error.value = err.response?.data?.message || 'Login failed';
-  }
-};
-</script>
-
 <template>
   <div class="login-container">
-    <div class="login-card">
-      <h2>Login</h2>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" v-model="username" required />
+    <BaseCard class="login-card">
+      <h1>Login</h1>
+      <p class="subtitle">Travel APAP Management System</p>
+
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div v-if="error" class="error-message">
+          {{ error }}
         </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required />
-        </div>
-        <div v-if="error" class="error-message">{{ error }}</div>
-        <button type="submit" class="login-btn">Login</button>
+
+        <BaseInput
+          v-model="username"
+          label="Username"
+          type="text"
+          placeholder="Enter your username"
+          required
+        />
+
+        <BaseInput
+          v-model="password"
+          label="Password"
+          type="password"
+          placeholder="Enter your password"
+          required
+        />
+
+        <BaseButton type="submit" :disabled="loading" class="login-button">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </BaseButton>
       </form>
-    </div>
+    </BaseCard>
   </div>
 </template>
 
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { BaseCard, BaseInput, BaseButton } from '@/components/common'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const username = ref('')
+const password = ref('')
+const loading = ref(false)
+const error = ref('')
+
+async function handleLogin() {
+  if (!username.value || !password.value) {
+    error.value = 'Please fill in all fields'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    await authStore.login(username.value, password.value)
+    
+    // Redirect based on role
+    const role = authStore.userRole
+    if (role === 'SUPERADMIN') {
+      router.push('/flights')
+    } else if (role === 'CUSTOMER') {
+      router.push('/bookings')
+    } else if (role === 'RENTAL_VENDOR') {
+      router.push('/flights')
+    } else {
+      router.push('/')
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
 <style scoped>
 .login-container {
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f4f4f9;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-h2 {
+h1 {
   text-align: center;
-  margin-bottom: 1.5rem;
   color: #333;
+  margin-bottom: 10px;
+  font-size: 32px;
 }
 
-.form-group {
-  margin-bottom: 1rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
+.subtitle {
+  text-align: center;
   color: #666;
+  margin-bottom: 30px;
+  font-size: 14px;
 }
 
-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-input:focus {
-  outline: none;
-  border-color: #4a90e2;
-}
-
-.login-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.login-btn:hover {
-  background-color: #357abd;
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .error-message {
-  color: #e74c3c;
-  margin-bottom: 1rem;
-  text-align: center;
+  background-color: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #fcc;
+  font-size: 14px;
+}
+
+.login-button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
 }
 </style>
