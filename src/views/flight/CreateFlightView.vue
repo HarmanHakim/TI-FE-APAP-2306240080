@@ -6,6 +6,7 @@ import { useFlightStore } from '@/stores/flight/flight.store'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import SuccessModal from '@/components/common/SuccessModal.vue'
 
 const router = useRouter()
 const flightStore = useFlightStore()
@@ -37,6 +38,9 @@ interface ClassConfig {
 const classes = ref<ClassConfig[]>([
   { classType: 'Economy', seatCapacity: 0, price: 0 }
 ])
+
+const showSuccess = ref(false)
+const createdFlightId = ref('')
 
 const availableAirplanes = computed(() => {
   if (!formData.value.airlineId) return []
@@ -157,10 +161,19 @@ const handleSubmit = async () => {
   try {
     // Create flight with classes
     await flightStore.createFlight(formData.value, classes.value)
-    router.push('/flights')
+    createdFlightId.value = formData.value.id
+    showSuccess.value = true
   } catch {
     // Error handled by store
   }
+}
+
+const handleViewFlights = () => {
+  router.push('/flights')
+}
+
+const handleViewFlight = () => {
+  router.push(`/flights/${createdFlightId.value}`)
 }
 </script>
 
@@ -373,5 +386,14 @@ const handleSubmit = async () => {
         </button>
       </div>
     </form>
+
+    <!-- Success Modal -->
+    <SuccessModal :show="showSuccess" title="Flight Created Successfully!"
+      message="The flight has been scheduled and is now available for booking." :details="{
+        flightNumber: formData.id,
+        route: `${formData.originAirportCode} → ${formData.destinationAirportCode}`,
+        airline: airlineStore.airlines.find(a => a.id === formData.airlineId)?.name || formData.airlineId,
+        departure: new Date(formData.departureTime).toLocaleString()
+      }" actionText="View Flight Details" @action="handleViewFlight" @close="handleViewFlights" />
   </div>
 </template>

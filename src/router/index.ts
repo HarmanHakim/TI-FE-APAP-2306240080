@@ -26,19 +26,24 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/login',
-      name: 'login',
-      component: LoginView,
-    },
-    {
       path: '/',
       name: 'home',
       component: HomeView,
     },
     {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+    },
+    {
       path: '/airlines',
       name: 'airlines',
-      component: AirlineView,
+      component: () => import('../views/airline/AirlineView.vue'),
     },
     {
       path: '/airlines/add',
@@ -133,11 +138,46 @@ router.beforeEach((to, from, next) => {
   const publicPages = ['/login'];
   const authRequired = !publicPages.includes(to.path);
 
+  // Check if authentication is required
   if (authRequired && !authStore.isAuthenticated) {
     next('/login');
-  } else {
-    next();
+    return;
   }
+
+  // Role-based access control
+  if (authStore.isAuthenticated) {
+    const userRole = authStore.userRole;
+
+    // Admin-only routes (Superadmin, Flight Airline)
+    const adminRoutes = [
+      '/airplanes',
+      '/airplanes/add',
+      '/flights/add',
+      '/statistics'
+    ];
+
+    // Check if route starts with admin paths
+    const isAdminRoute = adminRoutes.some(route => to.path.startsWith(route)) ||
+      to.path.match(/\/airplanes\/.*\/edit/) ||
+      to.path.match(/\/flights\/.*\/edit/);
+
+    if (isAdminRoute && !authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE')) {
+      // Redirect non-admin users trying to access admin routes
+      next('/');
+      return;
+    }
+
+    // Customer-specific restrictions
+    if (userRole === 'CUSTOMER') {
+      // Customers cannot access airline management
+      if (to.path.startsWith('/airlines')) {
+        next('/');
+        return;
+      }
+    }
+  }
+
+  next();
 });
 
 export default router

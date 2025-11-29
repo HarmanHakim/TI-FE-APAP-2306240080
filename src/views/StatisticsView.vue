@@ -95,7 +95,7 @@ const revenueChartData = computed(() => {
     labels: statistics.value.flightStats.map(f => `${f.flightNumber}\n${f.route}`),
     datasets: [
       {
-        label: 'Potential Revenue ($)',
+        label: 'Potential Revenue (Rp)',
         backgroundColor: '#10b981',
         borderColor: '#059669',
         borderWidth: 1,
@@ -146,7 +146,7 @@ const revenueChartOptions = {
       beginAtZero: true,
       ticks: {
         callback: (value: string | number) => {
-          return '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          return 'Rp ' + Number(value).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
         }
       }
     }
@@ -171,26 +171,17 @@ onMounted(() => {
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium mb-2">Start Date</label>
-          <input
-            v-model="startDate"
-            type="date"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <input v-model="startDate" type="date"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
           <label class="block text-sm font-medium mb-2">End Date</label>
-          <input
-            v-model="endDate"
-            type="date"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <input v-model="endDate" type="date"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
         </div>
         <div class="flex items-end">
-          <VButton
-            @click="loadStatistics"
-            :disabled="loading"
-            class="w-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400"
-          >
+          <VButton @click="loadStatistics" :disabled="loading"
+            class="w-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400">
             {{ loading ? 'Loading...' : 'Load Statistics' }}
           </VButton>
         </div>
@@ -215,7 +206,8 @@ onMounted(() => {
             </div>
             <div class="bg-blue-100 p-3 rounded-full">
               <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
@@ -226,12 +218,15 @@ onMounted(() => {
             <div>
               <h3 class="text-gray-600 text-sm font-medium uppercase">Total Revenue</h3>
               <p class="text-3xl font-bold text-green-600 mt-2">
-                ${{ (statistics.potentialRevenue ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                Rp {{ (statistics.potentialRevenue ?? 0).toLocaleString('id-ID', {
+                  minimumFractionDigits: 0,
+                maximumFractionDigits: 0 }) }}
               </p>
             </div>
             <div class="bg-green-100 p-3 rounded-full">
               <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
@@ -247,7 +242,8 @@ onMounted(() => {
             </div>
             <div class="bg-purple-100 p-3 rounded-full">
               <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
           </div>
@@ -255,12 +251,14 @@ onMounted(() => {
       </div>
 
       <!-- Charts -->
-      <div v-if="statistics.flightStats && statistics.flightStats.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="statistics.flightStats && statistics.flightStats.length > 0"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Booking Count Chart -->
         <div class="bg-white p-6 rounded-lg shadow-md">
           <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Booking Count per Flight
           </h2>
@@ -273,7 +271,8 @@ onMounted(() => {
         <div class="bg-white p-6 rounded-lg shadow-md">
           <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Potential Revenue per Flight
           </h2>
@@ -309,10 +308,14 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="px-4 py-3 text-right font-semibold text-green-600">
-                  ${{ flight.potentialRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                  Rp {{ flight.potentialRevenue.toLocaleString('id-ID', {
+                    minimumFractionDigits: 0,
+                  maximumFractionDigits: 0 }) }}
                 </td>
                 <td class="px-4 py-3 text-right text-sm text-gray-600">
-                  ${{ (flight.potentialRevenue / flight.bookingCount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                  Rp {{ (flight.potentialRevenue / flight.bookingCount).toLocaleString('id-ID', {
+                    minimumFractionDigits:
+                      0, maximumFractionDigits: 0 }) }}
                 </td>
               </tr>
             </tbody>
@@ -325,7 +328,9 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="px-4 py-3 text-right text-green-600">
-                  ${{ (statistics.potentialRevenue ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                  Rp {{ (statistics.potentialRevenue ?? 0).toLocaleString('id-ID', {
+                    minimumFractionDigits: 0,
+                  maximumFractionDigits: 0 }) }}
                 </td>
                 <td class="px-4 py-3"></td>
               </tr>
@@ -337,7 +342,8 @@ onMounted(() => {
       <!-- Empty State -->
       <div v-else class="bg-white p-12 rounded-lg shadow-md text-center">
         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         <h3 class="text-xl font-semibold text-gray-700 mb-2">No Data Available</h3>
         <p class="text-gray-500">

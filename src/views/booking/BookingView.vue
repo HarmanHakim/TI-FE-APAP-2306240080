@@ -2,9 +2,12 @@
 import { useBookingStore } from '@/stores/booking/booking.store'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import FlightReminder from '@/components/FlightReminder.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const bookingStore = useBookingStore()
+const authStore = useAuthStore()
 
 // Filter states
 const searchQuery = ref('')
@@ -122,10 +125,16 @@ const handleCancelBooking = async (bookingId: string) => {
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Flight Bookings</h1>
-      <button @click="router.push('/bookings/add')"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-        Create Booking
-      </button>
+      <div class="flex gap-3">
+        <button v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE')" @click="router.push('/statistics')"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+          View Statistics
+        </button>
+        <button @click="router.push('/bookings/add')"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          Create Booking
+        </button>
+      </div>
     </div>
 
     <!-- Statistics Cards -->
@@ -322,6 +331,11 @@ const handleCancelBooking = async (bookingId: string) => {
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Flight Reminders for Customers -->
+    <div v-if="authStore.hasRole('CUSTOMER')" class="mt-8">
+      <FlightReminder :interval="3" :showForCustomer="true" />
     </div>
   </div>
 </template>

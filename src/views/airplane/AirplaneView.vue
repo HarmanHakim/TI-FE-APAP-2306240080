@@ -4,10 +4,12 @@ import { useAirlineStore } from '@/stores/airline/airline.store'
 import { useAirplaneStore } from '@/stores/airplane/airplane.store'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const airplaneStore = useAirplaneStore()
 const airlineStore = useAirlineStore()
+const authStore = useAuthStore()
 
 // Filter states
 const filterIsDeleted = ref<boolean | undefined>(undefined)
@@ -70,7 +72,7 @@ const filteredAirplanes = computed(() => {
 
 const sortedAirplanes = computed(() => {
   const filtered = [...filteredAirplanes.value]
-  
+
   switch (sortBy.value) {
     case 'model-asc':
       return filtered.sort((a, b) => a.model.localeCompare(b.model))
@@ -118,7 +120,8 @@ const handleActivate = async (id: string) => {
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Airplane Management</h1>
-      <VButton @click="router.push('/airplanes/add')" class="bg-blue-600 text-white max-w-xs">
+      <VButton v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE')" @click="router.push('/airplanes/add')"
+        class="bg-blue-600 text-white max-w-xs">
         Register New Airplane
       </VButton>
     </div>
@@ -244,7 +247,7 @@ const handleActivate = async (id: string) => {
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <div class="flex gap-2">
+              <div v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE')" class="flex gap-2">
                 <button @click="handleEdit(airplane.id)"
                   class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                   Edit
@@ -258,6 +261,7 @@ const handleActivate = async (id: string) => {
                   Activate
                 </button>
               </div>
+              <span v-else class="text-gray-500 text-sm">No actions</span>
             </td>
           </tr>
         </tbody>

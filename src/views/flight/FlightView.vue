@@ -4,10 +4,12 @@ import { useFlightStore } from '@/stores/flight/flight.store'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const flightStore = useFlightStore()
 const airlineStore = useAirlineStore()
+const authStore = useAuthStore()
 
 // Filter states
 const searchOrigin = ref('')
@@ -222,7 +224,8 @@ const handleDeleteFlight = async (flightId: string) => {
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Flights</h1>
-      <button @click="router.push('/flights/add')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      <button v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE')" @click="router.push('/flights/add')"
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
         Create Flight
       </button>
     </div>
@@ -590,7 +593,7 @@ const handleDeleteFlight = async (flightId: string) => {
               </svg>
               View Details
             </button>
-            <button v-if="flight.status <= 2 && !flight.isDeleted"
+            <button v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE') && flight.status <= 2 && !flight.isDeleted"
               @click.stop="router.push(`/flights/${flight.id}/edit`)"
               class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -599,7 +602,8 @@ const handleDeleteFlight = async (flightId: string) => {
               </svg>
               Edit Flight
             </button>
-            <button v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted"
+            <button
+              v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE') && (flight.status === 1 || flight.status === 2) && !flight.isDeleted"
               @click.stop="handleDeleteFlight(flight.id)"
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -608,12 +612,13 @@ const handleDeleteFlight = async (flightId: string) => {
               </svg>
               Cancel Flight
             </button>
-            <button @click.stop="selectFlightForBooking(flight.id)" :class="[
-              'px-4 py-2 rounded-lg transition-colors flex items-center',
-              (selectedDepartureFlight === flight.id || selectedReturnFlight === flight.id)
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            ]">
+            <button v-if="authStore.hasRole('CUSTOMER', 'SUPERADMIN') && flight.status === 1 && !flight.isDeleted"
+              @click.stop="selectFlightForBooking(flight.id)" :class="[
+                'px-4 py-2 rounded-lg transition-colors flex items-center',
+                (selectedDepartureFlight === flight.id || selectedReturnFlight === flight.id)
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              ]">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />

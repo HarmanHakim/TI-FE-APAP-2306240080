@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFlightStore } from '@/stores/flight/flight.store'
 import { useBookingStore } from '@/stores/booking/booking.store'
+import { useAuthStore } from '@/stores/auth'
 import { seatService } from '@/services/seat.service'
 import type { ReadFlightDto } from '@/interfaces/flight.interface'
 import type { ReadSeatDto } from '@/interfaces/seat.interface'
@@ -13,6 +14,7 @@ const router = useRouter()
 const route = useRoute()
 const flightStore = useFlightStore()
 const bookingStore = useBookingStore()
+const authStore = useAuthStore()
 
 const flight = ref<ReadFlightDto | null>(null)
 const seats = ref<ReadSeatDto[]>([])
@@ -291,8 +293,7 @@ onMounted(async () => {
                           seat.isAvailable
                             ? 'bg-green-100 text-green-800 border-green-400'
                             : 'bg-red-100 text-red-800 border-red-400'
-                        ]"
-                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
+                        ]" :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
                           <!-- Seat Icon -->
                           <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -319,8 +320,7 @@ onMounted(async () => {
                           seat.isAvailable
                             ? 'bg-green-100 text-green-800 border-green-400'
                             : 'bg-red-100 text-red-800 border-red-400'
-                        ]"
-                          :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
+                        ]" :title="seat.isAvailable ? 'Available' : `Occupied by ${seat.passengerName || 'Unknown'}`">
                           <!-- Seat Icon -->
                           <svg class="w-4 h-4 mb-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -435,7 +435,8 @@ onMounted(async () => {
 
       <!-- Actions -->
       <div class="bg-white p-6 rounded-lg shadow flex flex-wrap gap-4">
-        <button @click="router.push(`/bookings/add?flightId=${flight.id}`)"
+        <button v-if="authStore.hasRole('CUSTOMER', 'SUPERADMIN') && flight.status === 1 && !flight.isDeleted"
+          @click="router.push(`/bookings/add?flightId=${flight.id}`)"
           class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -444,7 +445,8 @@ onMounted(async () => {
           Book This Flight
         </button>
 
-        <button v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted"
+        <button
+          v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE') && (flight.status === 1 || flight.status === 2) && !flight.isDeleted"
           @click="router.push(`/flights/${flight.id}/edit`)"
           class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,7 +456,9 @@ onMounted(async () => {
           Edit Flight
         </button>
 
-        <button v-if="(flight.status === 1 || flight.status === 2) && !flight.isDeleted" @click="handleCancelFlight"
+        <button
+          v-if="authStore.hasRole('SUPERADMIN', 'FLIGHT_AIRLINE') && (flight.status === 1 || flight.status === 2) && !flight.isDeleted"
+          @click="handleCancelFlight"
           class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

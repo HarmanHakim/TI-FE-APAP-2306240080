@@ -58,6 +58,15 @@ export class FlightService {
     const response = await axios.delete(`${API_BASE_URL}/flights/${id}/delete`);
     return response.data;
   }
+
+  async getFlightReminders(interval?: number, customerId?: string): Promise<CommonResponseInterface<import('@/interfaces/flight-reminder.interface').FlightReminderDto[]>> {
+    const params: any = {};
+    if (interval !== undefined) params.interval = interval;
+    if (customerId) params.customerId = customerId;
+
+    const response = await axios.get(`${API_BASE_URL}/flights/reminder`, { params });
+    return response.data;
+  }
 }
 
 export const flightService = FlightService.getInstance();

@@ -4,8 +4,8 @@ import { useAirlineStore } from '@/stores/airline/airline.store'
 import { useAirplaneStore } from '@/stores/airplane/airplane.store'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-
 import VButton from '@/components/common/VButton.vue'
+import SuccessModal from '@/components/common/SuccessModal.vue'
 
 const router = useRouter()
 const airplaneStore = useAirplaneStore()
@@ -18,16 +18,34 @@ const form = ref<CreateAirplaneDto>({
   manufactureYear: new Date().getFullYear()
 })
 
+const showSuccess = ref(false)
+const createdAirplaneId = ref('')
+
 onMounted(async () => {
   await airlineStore.fetchAllAirlines()
 })
 
 const handleSubmit = async () => {
   try {
-    await airplaneStore.createAirplane(form.value)
-    router.push('/airplanes')
+    const result = await airplaneStore.createAirplane(form.value)
+    createdAirplaneId.value = result.id || form.value.model
+    showSuccess.value = true
   } catch (error) {
     console.error('Failed to create airplane:', error)
+  }
+}
+
+const handleViewAirplanes = () => {
+  router.push('/airplanes')
+}
+
+const handleCreateAnother = () => {
+  showSuccess.value = false
+  form.value = {
+    airlineId: '',
+    model: '',
+    seatCapacity: 0,
+    manufactureYear: new Date().getFullYear()
   }
 }
 </script>
@@ -74,5 +92,14 @@ const handleSubmit = async () => {
         </VButton>
       </div>
     </form>
+
+    <!-- Success Modal -->
+    <SuccessModal :show="showSuccess" title="Airplane Registered Successfully!"
+      message="The airplane has been added to the fleet." :details="{
+        model: form.model,
+        airline: airlineStore.airlines.find(a => a.id === form.airlineId)?.name || form.airlineId,
+        seatCapacity: `${form.seatCapacity} seats`,
+        manufactureYear: form.manufactureYear
+      }" actionText="View All Airplanes" @action="handleViewAirplanes" @close="handleCreateAnother" />
   </div>
 </template>
