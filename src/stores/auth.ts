@@ -31,6 +31,8 @@ interface LoginResponse {
     }
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_PROFILE_URL || 'http://localhost:8081/api';
+
 export const useAuthStore = defineStore('auth', () => {
     // Safe initialization from localStorage with try-catch
     let storedToken: string | null = null
@@ -53,10 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(username: string, password: string) {
         try {
-            console.log('🔵 Starting login process...')
-            console.log('🔵 localStorage available?', typeof localStorage !== 'undefined')
-
-            const response = await fetch('http://localhost:8081/api/auth/login', {
+            const response = await fetch(API_BASE_URL + '/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,10 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
             }
 
             const data: LoginResponse = await response.json()
-
-            console.log('=== LOGIN RESPONSE DEBUG ===')
-            console.log('Full response:', JSON.stringify(data, null, 2))
-            console.log('============================')
 
             // Validate response structure
             if (!data.data || !data.data.token) {
@@ -96,39 +91,21 @@ export const useAuthStore = defineStore('auth', () => {
                 locations: data.data.locations
             }
 
-            console.log('Extracted token:', tokenValue)
-            console.log('Extracted user:', userData)
-            console.log('User role:', userData.role)
-
             // Validate user data
             if (!userData.role) {
                 throw new Error('User role is missing from response')
             }
-
-            console.log('🔵 About to save to localStorage...')
-            console.log('🔵 Current localStorage length:', localStorage.length)
-
             // Save token and user to store and localStorage
             token.value = tokenValue
             user.value = userData
 
             try {
                 localStorage.setItem('token', tokenValue)
-                console.log('🔵 Token saved to localStorage')
                 localStorage.setItem('user', JSON.stringify(userData))
-                console.log('🔵 User saved to localStorage')
             } catch (storageError) {
                 console.error('❌ localStorage error:', storageError)
                 throw new Error('Failed to save to localStorage: ' + storageError)
             }
-
-            console.log('✅ Login successful')
-            console.log('🔵 localStorage.length after save:', localStorage.length)
-            console.log('🔵 Token exists in localStorage:', !!localStorage.getItem('token'))
-            console.log('🔵 Token value from localStorage:', localStorage.getItem('token')?.substring(0, 50) + '...')
-            console.log('🔵 User from localStorage:', localStorage.getItem('user'))
-            console.log('🔵 Store token.value:', token.value?.substring(0, 50) + '...')
-            console.log('🔵 Store user.value:', user.value)
 
             return data
         } catch (error) {

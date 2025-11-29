@@ -57,6 +57,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+            --build-arg VITE_API_PROFILE_URL=${{ secrets.VITE_API_PROFILE_URL }} \
             -t $DOCKER_IMAGE_NAME:$IMAGE_TAG .
 
       - name: Push Docker image
