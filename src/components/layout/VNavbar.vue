@@ -26,7 +26,9 @@ const navItems = computed(() => {
         { path: '/flights', label: 'Flights', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8', roles: ['CUSTOMER', 'SUPERADMIN', 'FLIGHT_AIRLINE'] },
         { path: '/bookings', label: 'Bookings', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', roles: ['CUSTOMER', 'SUPERADMIN'] },
         { path: '/airplanes', label: 'Airplanes', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8', roles: ['SUPERADMIN', 'FLIGHT_AIRLINE'] },
-        { path: '/statistics', label: 'Statistics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', roles: ['SUPERADMIN', 'FLIGHT_AIRLINE'] }
+        { path: '/statistics', label: 'Statistics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', roles: ['SUPERADMIN', 'FLIGHT_AIRLINE'] },
+        { path: '/coupons', label: 'Coupons', icon: 'M15 5v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2zM5 5v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2zM15 15v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2a2 2 0 00-2 2zm0 0v-2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2zM5 15v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H7a2 2 0 00-2 2zm0 0v-2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2z', roles: ['SUPERADMIN', 'CUSTOMER'] },
+        { path: '/loyalty', label: 'Loyalty', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['SUPERADMIN', 'CUSTOMER'] }
     ]
 
     return items.filter(item => authStore.hasRole(...item.roles))
@@ -80,7 +82,8 @@ const closeProfileMenu = () => {
                 </div>
 
                 <!-- Profile Dropdown -->
-                <div v-if="authStore.isAuthenticated" class="hidden md:block relative">
+                <div v-if="authStore.isAuthenticated" class="hidden md:block relative"
+                    v-click-outside="closeProfileMenu">
                     <button @click="showProfileMenu = !showProfileMenu"
                         class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                         <div
@@ -98,7 +101,7 @@ const closeProfileMenu = () => {
 
                     <!-- Dropdown Menu -->
                     <Transition name="dropdown">
-                        <div v-if="showProfileMenu" v-click-outside="closeProfileMenu"
+                        <div v-if="showProfileMenu"
                             class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
                             <router-link to="/profile" @click="closeProfileMenu"
                                 class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

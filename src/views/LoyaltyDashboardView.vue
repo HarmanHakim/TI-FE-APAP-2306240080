@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useLoyaltyStore } from '@/stores/loyalty/loyalty.store'
+import { useAuthStore } from '@/stores/auth'
 import { toast } from 'vue-sonner'
 
 const loyaltyStore = useLoyaltyStore()
+const authStore = useAuthStore()
 
 const customerIdInput = ref(loyaltyStore.customerId)
 
@@ -36,6 +38,9 @@ const redeemForm = reactive({
 const hasDashboardData = computed(() => Boolean(loyaltyStore.dashboard))
 const activeCoupons = computed(() => loyaltyStore.purchasedCoupons.filter(coupon => !coupon.usedDate))
 const redeemedCoupons = computed(() => loyaltyStore.purchasedCoupons.filter(coupon => coupon.usedDate))
+
+const isSuperAdmin = computed(() => authStore.hasRole('SUPERADMIN'))
+const isCustomer = computed(() => authStore.hasRole('CUSTOMER'))
 
 const syncCustomerId = (customerId?: string) => {
   addPointsForm.customerId = customerId || ''
@@ -229,7 +234,11 @@ const filteredAndSortedPurchasedCoupons = computed(() => {
 })
 
 onMounted(() => {
-  if (loyaltyStore.customerId) {
+  // If customer, auto-load their dashboard
+  if (isCustomer.value && authStore.user?.id) {
+    customerIdInput.value = authStore.user.id
+    loyaltyStore.loadDashboard(authStore.user.id)
+  } else if (loyaltyStore.customerId) {
     loyaltyStore.loadDashboard()
   }
 })
@@ -246,7 +255,9 @@ syncCustomerId(loyaltyStore.customerId)
           <h1 class="text-3xl font-bold text-gray-900">Customer Loyalty Dashboard</h1>
           <p class="text-gray-500 mt-1">Track balances, manage coupons, and help customers redeem their rewards.</p>
         </div>
-        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+
+        <!-- Customer ID Input - Only visible/editable for Superadmin -->
+        <div v-if="isSuperAdmin" class="flex flex-col gap-3 md:flex-row md:items-center">
           <input v-model="customerIdInput" type="text" placeholder="Customer UUID"
             class="w-full md:w-80 rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           <button
@@ -291,7 +302,8 @@ syncCustomerId(loyaltyStore.customerId)
       </div>
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4"
+        <!-- Add Points Form - Superadmin Only -->
+        <form v-if="isSuperAdmin" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4"
           @submit.prevent="handleAddPoints">
           <div>
             <p class="text-sm font-semibold text-gray-900">Add Points</p>
@@ -321,6 +333,7 @@ syncCustomerId(loyaltyStore.customerId)
           </button>
         </form>
 
+        <!-- Purchase Form - Visible to All (Customer uses own points, Admin can test) -->
         <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4"
           @submit.prevent="handlePurchase">
           <div>
@@ -344,7 +357,9 @@ syncCustomerId(loyaltyStore.customerId)
           </button>
         </form>
 
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4" @submit.prevent="handleRedeem">
+        <!-- Redeem Form - Superadmin Only -->
+        <form v-if="isSuperAdmin" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4"
+          @submit.prevent="handleRedeem">
           <div>
             <p class="text-sm font-semibold text-gray-900">Redeem Coupon</p>
             <p class="text-xs text-gray-500">Validate codes with billing API key</p>
@@ -375,23 +390,18 @@ syncCustomerId(loyaltyStore.customerId)
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="text-xl font-semibold text-gray-900">Available Coupons</h2>
-                <p class="text-sm text-gray-500">{{ filteredAndSortedAvailableCoupons.length }} of {{ loyaltyStore.availableCoupons.length }} offers</p>
+                <p class="text-sm text-gray-500">{{ filteredAndSortedAvailableCoupons.length }} of {{
+                  loyaltyStore.availableCoupons.length }} offers</p>
               </div>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
               <div class="flex-1">
-                <input
-                  v-model="availableCouponsSearch"
-                  type="text"
-                  placeholder="Search available coupons..."
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
+                <input v-model="availableCouponsSearch" type="text" placeholder="Search available coupons..."
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
               <div class="sm:w-48">
-                <select
-                  v-model="availableCouponsSortBy"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
+                <select v-model="availableCouponsSortBy"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                   <option value="points">Sort by: Points</option>
                   <option value="percentOff">Sort by: Discount</option>
                   <option value="name">Sort by: Name</option>
@@ -420,7 +430,8 @@ syncCustomerId(loyaltyStore.customerId)
               </button>
             </article>
           </div>
-          <p v-else-if="!loyaltyStore.availableCoupons.length" class="text-sm text-gray-500">No coupons available. Create one from the Coupons section.</p>
+          <p v-else-if="!loyaltyStore.availableCoupons.length" class="text-sm text-gray-500">No coupons available.
+            Create one from the Coupons section.</p>
           <p v-else class="text-sm text-gray-500">No coupons match your search criteria.</p>
         </section>
 
@@ -429,33 +440,26 @@ syncCustomerId(loyaltyStore.customerId)
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="text-xl font-semibold text-gray-900">Purchased Coupons</h2>
-                <p class="text-sm text-gray-500">{{ filteredAndSortedPurchasedCoupons.length }} of {{ loyaltyStore.purchasedCoupons.length }} entries</p>
+                <p class="text-sm text-gray-500">{{ filteredAndSortedPurchasedCoupons.length }} of {{
+                  loyaltyStore.purchasedCoupons.length }} entries</p>
               </div>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
               <div class="flex-1">
-                <input
-                  v-model="purchasedCouponsSearch"
-                  type="text"
-                  placeholder="Search purchased coupons..."
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
+                <input v-model="purchasedCouponsSearch" type="text" placeholder="Search purchased coupons..."
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
               <div class="sm:w-48">
-                <select
-                  v-model="purchasedCouponsFilter"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
+                <select v-model="purchasedCouponsFilter"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                   <option value="all">All Coupons</option>
                   <option value="active">Active Only</option>
                   <option value="redeemed">Redeemed Only</option>
                 </select>
               </div>
               <div class="sm:w-48">
-                <select
-                  v-model="purchasedCouponsSortBy"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
+                <select v-model="purchasedCouponsSortBy"
+                  class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                   <option value="purchasedDate">Sort by: Newest</option>
                   <option value="percentOff">Sort by: Discount</option>
                   <option value="name">Sort by: Name</option>
@@ -488,7 +492,8 @@ syncCustomerId(loyaltyStore.customerId)
               </div>
             </article>
           </div>
-          <p v-else-if="!loyaltyStore.purchasedCoupons.length" class="text-sm text-gray-500">No coupons purchased yet for this customer.</p>
+          <p v-else-if="!loyaltyStore.purchasedCoupons.length" class="text-sm text-gray-500">No coupons purchased yet
+            for this customer.</p>
           <p v-else class="text-sm text-gray-500">No coupons match your search or filter criteria.</p>
         </section>
       </div>
@@ -528,7 +533,7 @@ syncCustomerId(loyaltyStore.customerId)
               </li>
               <li v-if="!redeemedCoupons.length" class="text-sm text-gray-500">No coupons redeemed yet.</li>
             </ul>
-            </div>
+          </div>
         </div>
       </section>
     </section>

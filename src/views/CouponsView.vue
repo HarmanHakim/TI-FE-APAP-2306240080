@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useCouponStore } from '@/stores/coupon/coupon.store'
+import { useAuthStore } from '@/stores/auth'
+import { useLoyaltyStore } from '@/stores/loyalty/loyalty.store'
 import type { CouponDto } from '@/interfaces/loyalty.interface'
 import { toast } from 'vue-sonner'
 
 const couponStore = useCouponStore()
+const authStore = useAuthStore()
+const loyaltyStore = useLoyaltyStore()
 
 const form = reactive({
   id: '',
@@ -18,6 +22,8 @@ const searchQuery = ref('')
 const sortBy = ref<'name' | 'points' | 'percentOff' | 'createdDate'>('createdDate')
 
 const isEditing = computed(() => Boolean(form.id))
+const isSuperAdmin = computed(() => authStore.hasRole('SUPERADMIN'))
+const isCustomer = computed(() => authStore.hasRole('CUSTOMER'))
 
 const resetForm = () => {
   form.id = ''
@@ -107,6 +113,20 @@ const handleDelete = async (id: string) => {
   }
 }
 
+const handlePurchase = async (coupon: CouponDto) => {
+  if (!authStore.user?.id) {
+    toast.error('User ID not found')
+    return
+  }
+
+  if (confirm(`Purchase ${coupon.name} for ${coupon.points} points?`)) {
+    await loyaltyStore.purchaseCoupon({
+      customerId: authStore.user.id,
+      couponId: coupon.id
+    })
+  }
+}
+
 const totalPointsValue = computed(() => couponStore.coupons.reduce((sum, coupon) => sum + coupon.points, 0))
 
 onMounted(() => {
@@ -120,12 +140,17 @@ onMounted(() => {
       <div class="flex flex-col gap-2">
         <p class="text-xs uppercase tracking-wide text-indigo-600 font-semibold">Coupons</p>
         <h1 class="text-3xl font-bold text-gray-900">Coupon Catalog</h1>
-        <p class="text-gray-500">Create and maintain loyalty coupons that customers can purchase with their points.</p>
+        <p class="text-gray-500">
+          {{ isSuperAdmin
+            ? 'Create and maintain loyalty coupons.' : 'Browse and purchase coupons with your loyalty points.' }}
+        </p>
       </div>
     </section>
 
-    <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4" @submit.prevent="handleSubmit">
+    <section class="grid grid-cols-1 gap-6" :class="isSuperAdmin ? 'lg:grid-cols-3' : ''">
+      <!-- Create/Update Form - Only for Superadmin -->
+      <form v-if="isSuperAdmin" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4"
+        @submit.prevent="handleSubmit">
         <div>
           <p class="text-sm font-semibold text-gray-900">{{ isEditing ? 'Update' : 'Create' }} Coupon</p>
           <p class="text-xs text-gray-500">Provide details for the reward you want to offer.</p>
@@ -167,13 +192,14 @@ onMounted(() => {
         </div>
       </form>
 
-      <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+        :class="isSuperAdmin ? 'lg:col-span-2' : 'col-span-1'">
         <header class="space-y-4 mb-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 class="text-xl font-semibold text-gray-900">Existing Coupons</h2>
-              <p class="text-sm text-gray-500">{{ filteredAndSortedCoupons.length }} of {{ couponStore.coupons.length }} coupons • {{ totalPointsValue }} pts
-                combined</p>
+              <h2 class="text-xl font-semibold text-gray-900">Available Coupons</h2>
+              <p class="text-sm text-gray-500">{{ filteredAndSortedCoupons.length }} of {{ couponStore.coupons.length }}
+                coupons</p>
             </div>
             <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-500" :disabled="couponStore.loading"
               @click="couponStore.fetchCoupons()">
@@ -182,18 +208,12 @@ onMounted(() => {
           </div>
           <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search by name or description..."
-                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
+              <input v-model="searchQuery" type="text" placeholder="Search by name or description..."
+                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div class="sm:w-48">
-              <select
-                v-model="sortBy"
-                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              >
+              <select v-model="sortBy"
+                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 <option value="createdDate">Sort by: Newest</option>
                 <option value="name">Sort by: Name</option>
                 <option value="points">Sort by: Points</option>
@@ -223,7 +243,9 @@ onMounted(() => {
             </div>
             <div class="mt-4 flex items-center justify-between">
               <p class="text-xs text-gray-500">ID: {{ coupon.id }}</p>
-              <div class="flex items-center gap-3">
+
+              <!-- Admin Actions -->
+              <div v-if="isSuperAdmin" class="flex items-center gap-3">
                 <button class="text-sm font-semibold text-red-600 hover:text-red-500" @click="handleDelete(coupon.id)">
                   Delete
                 </button>
@@ -231,10 +253,18 @@ onMounted(() => {
                   Edit Coupon
                 </button>
               </div>
+
+              <!-- Customer Actions -->
+              <div v-if="isCustomer" class="flex items-center gap-3">
+                <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500"
+                  @click="handlePurchase(coupon)">
+                  Purchase
+                </button>
+              </div>
             </div>
           </article>
         </div>
-        <p v-else-if="!couponStore.coupons.length" class="text-sm text-gray-500">No coupons yet. Create your first coupon using the form.</p>
+        <p v-else-if="!couponStore.coupons.length" class="text-sm text-gray-500">No coupons yet.</p>
         <p v-else class="text-sm text-gray-500">No coupons match your search criteria. Try adjusting your filters.</p>
       </section>
     </section>
