@@ -33,7 +33,7 @@ interface LoginResponse {
     }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_PROFILE_URL || 'http://localhost:8081/api';
+const API_BASE_URL = import.meta.env.VITE_API_PROFILE_URL || 'http://2306275506-be.hafizmuh.site';
 
 export const useAuthStore = defineStore('auth', () => {
     // Safe initialization from localStorage with try-catch
