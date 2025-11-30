@@ -11,6 +11,8 @@ interface User {
     saldo?: number
     phone?: string
     locations?: string[]
+    createdAt?: Date,
+    updatedAt?: Date
 }
 
 interface LoginResponse {

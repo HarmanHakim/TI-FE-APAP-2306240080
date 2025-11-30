@@ -89,7 +89,7 @@ const formatDate = (date: Date | string) => {
                             </svg>
                             <span :class="[
                                 'px-4 py-2 rounded-full text-sm font-semibold border',
-                                getRoleBadgeColor(userRole)
+                                getRoleBadgeColor(userRole!)
                             ]">
                                 {{ userRole }}
                             </span>
